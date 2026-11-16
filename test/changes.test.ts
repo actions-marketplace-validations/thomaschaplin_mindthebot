@@ -55,3 +55,18 @@ describe("changedLinesSince", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("renames in the per-commit fallback", () => {
+  it("counts edits made under the old name for the new name too", async () => {
+    const { client } = fakeClient({
+      commits: {
+        c2: [{ filename: "api/guide.mdx", patch: patch(21) }],
+        c3: [{ filename: "features/guide.mdx", previous_filename: "api/guide.mdx", patch: patch(80) }],
+      },
+    });
+    const prCommits = [commit("c1"), commit("c2"), commit("c3"), commit("m4", true)];
+    const changes = await changedLinesSince(client, cache, "o/r", "c1", "m4", prCommits);
+    expect(changes!["features/guide.mdx"]).toEqual([21, 80]);
+    expect(changes!["api/guide.mdx"]).toEqual([21, 80]);
+  });
+});

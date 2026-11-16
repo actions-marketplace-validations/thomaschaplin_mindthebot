@@ -50282,6 +50282,10 @@ function toChangedLines(files, into = {}) {
   }
   return into;
 }
+function mergeLines(a, b) {
+  if (!a && !b) return null;
+  return [.../* @__PURE__ */ new Set([...a ?? [], ...b ?? []])].sort((x, y) => x - y);
+}
 var slim = (files) => (files ?? []).map((f) => ({ filename: f.filename, previous_filename: f.previous_filename, patch: f.patch }));
 async function compareFiles(client, cache, owner, name, base, head) {
   return cache.wrap(["compare", owner, name, base, head], async () => {
@@ -50313,9 +50317,16 @@ async function changedLinesSince(client, cache, repo, baseOid, headOid, prCommit
     const own2 = after.filter((c) => !c.isMerge).slice(-MAX_COMMITS);
     if (own2.length === 0) return after.length > 0 ? {} : null;
     const changed = {};
+    const renames = [];
     for (const commit of own2) {
       const { files } = await commitFiles(client, cache, owner, name, commit.oid);
       toChangedLines(files, changed);
+      for (const f of files) if (f.previous_filename) renames.push([f.previous_filename, f.filename]);
+    }
+    for (const [from, to] of renames) {
+      const merged = mergeLines(changed[from], changed[to]);
+      changed[from] = merged;
+      changed[to] = merged;
     }
     return changed;
   } catch (error63) {

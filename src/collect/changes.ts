@@ -28,6 +28,11 @@ function toChangedLines(files: FileDiff[], into: ChangedLines = {}): ChangedLine
   return into;
 }
 
+function mergeLines(a: number[] | null | undefined, b: number[] | null | undefined): number[] | null {
+  if (!a && !b) return null;
+  return [...new Set([...(a ?? []), ...(b ?? [])])].sort((x, y) => x - y);
+}
+
 const slim = (files: FileDiff[] | undefined): FileDiff[] =>
   (files ?? []).map((f) => ({ filename: f.filename, previous_filename: f.previous_filename, patch: f.patch }));
 
@@ -89,9 +94,17 @@ export async function changedLinesSince(
     const own = after.filter((c) => !c.isMerge).slice(-MAX_COMMITS);
     if (own.length === 0) return after.length > 0 ? {} : null;
     const changed: ChangedLines = {};
+    const renames: [string, string][] = [];
     for (const commit of own) {
       const { files } = await commitFiles(client, cache, owner, name, commit.oid);
       toChangedLines(files, changed);
+      for (const f of files) if (f.previous_filename) renames.push([f.previous_filename, f.filename]);
+    }
+    // A file renamed in a later commit: count edits made under either name for both names.
+    for (const [from, to] of renames) {
+      const merged = mergeLines(changed[from], changed[to]);
+      changed[from] = merged;
+      changed[to] = merged;
     }
     return changed;
   } catch (error) {
