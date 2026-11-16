@@ -19,7 +19,8 @@
     "dev": "node src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check-dist": "npm run build && git diff --exit-code -- action/dist"
   },
   "keywords": [
     "github",
@@ -41,6 +42,7 @@
     "hot-shots": "^18.0.1"
   },
   "devDependencies": {
+    "@actions/core": "^3.0.1",
     "@types/node": "^26.6.6",
     "tsup": "^9.0.0",
     "typescript": "^7.0.2",

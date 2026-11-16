@@ -59,6 +59,47 @@ npx review-ledger --repo owner/name --datadog             # also send gauges to 
 
 Claude (`claude[bot]`, or `github-actions[bot]` comments that mention Claude), Greptile, Copilot, CodeRabbit and Cursor Bugbot. You can add any other bot login in the config.
 
+## GitHub Action
+
+Run it on a schedule and publish the report as a job summary, a living issue, or both:
+
+```yaml
+name: AI review ledger
+on:
+  schedule:
+    - cron: "0 8 * * 1"   # Mondays
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write           # only needed for output: issue
+
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: thomaschaplin/review-ledger@v1
+        with:
+          since: 7d
+          output: job-summary,issue
+```
+
+| Input | Default | |
+|---|---|---|
+| `repos` | current repo | `owner/name`, comma- or newline-separated |
+| `since` | `7d` | `12h`, `7d`, `2w` |
+| `max-prs` | `200` | per repo |
+| `config` | built-in | path to a YAML config |
+| `output` | `job-summary` | `job-summary`, `issue`, `none` (comma-separated) |
+| `issue-title` | `AI review ledger` | an open issue with this title and the `review-ledger` label is updated instead of creating a new one |
+| `issue-repo` | current repo | where to post the issue |
+| `github-token` | `${{ github.token }}` | use a PAT or GitHub App token to read other private repos |
+
+Outputs: `markdown-path`, `json-path`, `findings`, `by-bot` (JSON of per-reviewer rates, handy for gating or alerting in a later step) and `issue-url`. The full JSON ledger is written to `review-ledger.json`, so you can upload it with `actions/upload-artifact`.
+
+This repo runs the Action on itself every week: see [.github/workflows/ledger.yml](.github/workflows/ledger.yml).
+
 ## Development
 
 ```bash
@@ -66,12 +107,13 @@ npm install
 npm test            # vitest: classifier rules, diff parsing, a fixture-based pipeline test
 npm run typecheck
 npm run dev -- --repo owner/name   # run from source (Node 22.18+)
-npm run build       # bundle to dist/cli.js
+npm run build       # bundle the CLI (dist/cli.js) and the Action (action/dist/index.js)
+npm run check-dist  # rebuild and fail if the committed Action bundle is out of date (CI runs this)
 ```
 
 ## Roadmap
 
-- [ ] GitHub Action wrapper: a weekly report as a job summary or an issue
+- [x] GitHub Action: a weekly report as a job summary or an issue
 - [ ] A 30-finding hand-labelled agreement check, with the rate published here
 - [ ] Classify summary comments by their bullet points
 - [ ] Group findings by category (bug, security, style)

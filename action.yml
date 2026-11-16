@@ -1,0 +1,54 @@
+name: review-ledger
+description: Measure whether AI code review comments on your pull requests get addressed, dismissed or ignored.
+author: Thomas Chaplin
+branding:
+  icon: check-square
+  color: purple
+
+inputs:
+  github-token:
+    description: Token used to read pull requests (and write the issue, if output includes "issue").
+    default: ${{ github.token }}
+  repos:
+    description: Repos to analyse, comma- or newline-separated (owner/name). Defaults to the current repo.
+    required: false
+  since:
+    description: How far back to look, e.g. 12h, 7d, 2w.
+    default: 7d
+  max-prs:
+    description: Maximum merged PRs per repo.
+    default: "200"
+  config:
+    description: Path to a review-ledger YAML config (bots, proximity, phrases).
+    required: false
+  output:
+    description: Where to publish the report, comma-separated. job-summary, issue or none.
+    default: job-summary
+  issue-title:
+    description: Title of the report issue. An open issue with this title and the review-ledger label is updated instead of creating a new one.
+    default: AI review ledger
+  issue-repo:
+    description: Repo to post the issue in. Defaults to the current repo.
+    required: false
+  markdown-path:
+    description: Where to write the markdown report.
+    default: review-ledger.md
+  json-path:
+    description: Where to write the full JSON ledger, including every classified finding.
+    default: review-ledger.json
+
+outputs:
+  markdown-path:
+    description: Path of the markdown report.
+  json-path:
+    description: Path of the JSON ledger.
+  findings:
+    description: Total number of AI findings classified.
+  by-bot:
+    description: 'JSON object of per-reviewer stats, e.g. {"Claude":{"findings":12,"addressedRate":0.58,"dismissedRate":0.33}}.'
+  issue-url:
+    description: URL of the created or updated issue, if output includes "issue".
+
+runs:
+  using: node24
+  main: action/dist/index.js

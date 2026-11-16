@@ -1,0 +1,33 @@
+# Dogfooding: run the Action from this repo every Monday, and on demand.
+name: AI review ledger
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    inputs:
+      repos:
+        description: Repos to analyse (owner/name, comma-separated)
+        default: anthropics/claude-code-action
+      since:
+        description: How far back to look
+        default: 7d
+
+permissions:
+  contents: read
+
+jobs:
+  ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - id: ledger
+        uses: ./
+        with:
+          repos: ${{ inputs.repos || 'anthropics/claude-code-action' }}
+          since: ${{ inputs.since || '7d' }}
+          output: job-summary
+      - uses: actions/upload-artifact@v5
+        with:
+          name: review-ledger
+          path: ${{ steps.ledger.outputs.json-path }}
