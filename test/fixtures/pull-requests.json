@@ -1,0 +1,171 @@
+{
+  "repo": "acme/api",
+  "changes": {
+    "c1": { "src/users.ts": [41], "README.md": [3] },
+    "c2": {}
+  },
+  "pullRequests": [
+    {
+      "number": 10,
+      "url": "https://github.com/acme/api/pull/10",
+      "createdAt": "2026-11-02T09:00:00Z",
+      "updatedAt": "2026-11-02T15:00:00Z",
+      "mergedAt": "2026-11-02T15:00:00Z",
+      "headRefOid": "h10",
+      "comments": {
+        "nodes": [
+          { "author": { "login": "claude" }, "body": "## Review summary\nTwo issues found.", "createdAt": "2026-11-02T09:05:00Z" },
+          { "author": { "login": "github-actions" }, "body": "Coverage: 81%", "createdAt": "2026-11-02T09:07:00Z" }
+        ]
+      },
+      "reviews": {
+        "nodes": [
+          { "author": { "login": "greptile-apps" }, "body": "", "createdAt": "2026-11-02T09:10:00Z" },
+          { "author": { "login": "alice" }, "body": "LGTM", "createdAt": "2026-11-02T14:00:00Z" }
+        ]
+      },
+      "reviewThreads": {
+        "nodes": [
+          {
+            "isResolved": true,
+            "isOutdated": true,
+            "path": "src/users.ts",
+            "originalLine": 40,
+            "comments": {
+              "nodes": [
+                {
+                  "databaseId": 1001,
+                  "url": "https://github.com/acme/api/pull/10#discussion_r1001",
+                  "author": { "login": "claude" },
+                  "body": "`user` can be undefined here; this will throw.",
+                  "createdAt": "2026-11-02T09:06:00Z",
+                  "originalCommit": { "oid": "c1" },
+                  "reactionGroups": [{ "content": "THUMBS_UP", "reactors": { "totalCount": 1 } }]
+                },
+                {
+                  "databaseId": 1002,
+                  "url": "https://github.com/acme/api/pull/10#discussion_r1002",
+                  "author": { "login": "alice" },
+                  "body": "Good catch, fixed.",
+                  "createdAt": "2026-11-02T10:00:00Z",
+                  "originalCommit": { "oid": "c1" },
+                  "reactionGroups": []
+                },
+                {
+                  "databaseId": 1003,
+                  "url": "https://github.com/acme/api/pull/10#discussion_r1003",
+                  "author": { "login": "claude" },
+                  "body": "Thanks, the fix looks right.",
+                  "createdAt": "2026-11-02T10:05:00Z",
+                  "originalCommit": { "oid": "c1" },
+                  "reactionGroups": []
+                }
+              ]
+            }
+          },
+          {
+            "isResolved": true,
+            "isOutdated": false,
+            "path": "src/config.ts",
+            "originalLine": 5,
+            "comments": {
+              "nodes": [
+                {
+                  "databaseId": 1004,
+                  "url": "https://github.com/acme/api/pull/10#discussion_r1004",
+                  "author": { "login": "claude" },
+                  "body": "Consider reading this from an environment variable.",
+                  "createdAt": "2026-11-02T09:06:30Z",
+                  "originalCommit": { "oid": "c1" },
+                  "reactionGroups": null
+                }
+              ]
+            }
+          },
+          {
+            "isResolved": false,
+            "isOutdated": false,
+            "path": "src/db.ts",
+            "originalLine": 10,
+            "comments": {
+              "nodes": [
+                {
+                  "databaseId": 1005,
+                  "url": "https://github.com/acme/api/pull/10#discussion_r1005",
+                  "author": { "login": "greptile-apps" },
+                  "body": "Possible N+1 query.",
+                  "createdAt": "2026-11-02T09:10:00Z",
+                  "originalCommit": { "oid": "c1" },
+                  "reactionGroups": []
+                }
+              ]
+            }
+          },
+          {
+            "isResolved": true,
+            "isOutdated": false,
+            "path": "src/users.ts",
+            "originalLine": 12,
+            "comments": {
+              "nodes": [
+                {
+                  "databaseId": 1006,
+                  "url": "https://github.com/acme/api/pull/10#discussion_r1006",
+                  "author": { "login": "bob" },
+                  "body": "Nit: rename this.",
+                  "createdAt": "2026-11-02T11:00:00Z",
+                  "originalCommit": { "oid": "c1" },
+                  "reactionGroups": []
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "number": 11,
+      "url": "https://github.com/acme/api/pull/11",
+      "createdAt": "2026-11-03T10:00:00Z",
+      "updatedAt": "2026-11-04T10:00:00Z",
+      "mergedAt": "2026-11-04T10:00:00Z",
+      "headRefOid": "h11",
+      "comments": { "nodes": [] },
+      "reviews": { "nodes": [] },
+      "reviewThreads": {
+        "nodes": [
+          {
+            "isResolved": false,
+            "isOutdated": false,
+            "path": "src/api.ts",
+            "originalLine": 7,
+            "comments": {
+              "nodes": [
+                {
+                  "databaseId": 1101,
+                  "url": "https://github.com/acme/api/pull/11#discussion_r1101",
+                  "author": { "login": "greptile-apps" },
+                  "body": "Missing error handling for the fetch call.",
+                  "createdAt": "2026-11-03T10:20:00Z",
+                  "originalCommit": { "oid": "c2" },
+                  "reactionGroups": []
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "number": 12,
+      "url": "https://github.com/acme/api/pull/12",
+      "createdAt": "2026-11-05T10:00:00Z",
+      "updatedAt": "2026-11-05T12:00:00Z",
+      "mergedAt": "2026-11-05T12:00:00Z",
+      "headRefOid": "h12",
+      "comments": { "nodes": [] },
+      "reviews": { "nodes": [] },
+      "reviewThreads": { "nodes": [] }
+    }
+  ]
+}

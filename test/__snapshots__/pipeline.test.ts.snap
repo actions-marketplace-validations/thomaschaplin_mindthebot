@@ -1,0 +1,32 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildLedger > renders a stable markdown report 1`] = `
+"# AI review ledger
+
+Merged PRs from the last **30d** in \`acme/api\`. 3 PRs analysed, 2 with AI review comments. Generated 2026-11-16.
+
+## By reviewer
+
+| Reviewer | PRs | Findings | Addressed | Dismissed | Ignored | Outdated | Per PR | First comment |
+|---|---|---|---|---|---|---|---|---|
+| Claude | 1 | 2 | 1 (50%) | 1 (50%) | 0 (0%) | 0 | 2.0 | 5m |
+| Greptile | 2 | 2 | 0 (0%) | 0 (0%) | 2 (100%) | 0 | 1.0 | 10m |
+
+_**Addressed**: code near the comment changed afterwards, or a reply/👍 confirmed it. **Dismissed**: 👎, a dismissing reply, or resolved with no nearby change. **Ignored**: no response. **Outdated**: GitHub marked the thread outdated but no nearby change was found. **Per PR**: inline findings per PR the reviewer commented on. **First comment**: median time from PR opened._
+
+## Time to merge
+
+| PRs | Count | Median | p75 |
+|---|---|---|---|
+| With AI findings | 2 | 6.0h | 24.0h |
+| Without AI findings | 1 | 2.0h | 2.0h |
+
+_Context only: bigger PRs attract more findings and take longer to merge, so this doesn't show cause and effect._
+
+## Files where findings get dismissed most
+
+Candidates for path exclusions or extra context in your review instructions.
+
+- \`acme/api\` \`src/config.ts\`: 1
+"
+`;

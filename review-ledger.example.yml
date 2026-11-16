@@ -1,0 +1,22 @@
+# Copy to review-ledger.yml and pass with --config. Anything you leave out uses the defaults.
+
+# Which comment authors count as AI reviewers. Several matchers can share a name.
+bots:
+  - name: Claude
+    login: claude
+  - name: Claude
+    login: github-actions        # claude-code-action with the default GITHUB_TOKEN
+    bodyPattern: claude          # case-insensitive regex the comment body must match
+  - name: Greptile
+    login: greptile-apps
+  - name: Internal reviewer
+    login: my-review-bot
+
+# Lines either side of the commented line that count as "near" for the addressed rule.
+proximity: 3
+
+# Words in a human reply that mean the finding was acted on (whole words, case-insensitive).
+addressedPhrases: [fixed, done, good catch, addressed]
+
+# Words in a human reply that mean the finding was rejected.
+dismissedPhrases: [not an issue, false positive, intentional, by design, won't fix]
