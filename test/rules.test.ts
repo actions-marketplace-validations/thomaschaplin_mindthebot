@@ -75,3 +75,15 @@ describe("classify", () => {
     expect(outcome(makeFinding({ line: null }), { "src/users.ts": [1] }, defaultConfig)).toBe("ignored");
   });
 });
+
+describe("explicit replies vs nearby changes", () => {
+  it("a dismissal reply beats an unrelated nearby change", () => {
+    const finding = makeFinding({ replies: [reply("Known limitation, leaving as is for now.")] });
+    expect(classify(finding, { "src/users.ts": [41] }, defaultConfig).outcome).toBe("dismissed");
+  });
+
+  it("but not when the thread also says it was fixed", () => {
+    const finding = makeFinding({ replies: [reply("Out of scope at first, but fixed in abc123 after all.")] });
+    expect(classify(finding, { "src/users.ts": [41] }, defaultConfig).outcome).toBe("addressed");
+  });
+});

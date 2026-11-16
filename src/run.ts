@@ -34,13 +34,13 @@ export async function run(
     log(`${repo}: ${prs.length} PRs, ${findingCount} AI findings`);
 
     for (const pr of prs) {
-      // One comparison per distinct commented commit, not per comment.
+      // One diff per distinct commented commit, not per comment.
       const diffs = new Map<string, ChangedLines | null>();
       for (const finding of pr.findings) {
         let changes: ChangedLines | null | undefined;
         if (finding.commitOid) {
           if (!diffs.has(finding.commitOid)) {
-            diffs.set(finding.commitOid, await changedLinesSince(client, cache, repo, finding.commitOid, pr.headOid));
+            diffs.set(finding.commitOid, await changedLinesSince(client, cache, repo, finding.commitOid, pr.headOid, pr.commits));
           }
           changes = diffs.get(finding.commitOid);
         } else {

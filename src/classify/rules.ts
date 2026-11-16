@@ -27,6 +27,8 @@ export function repliesMatch(finding: Finding, phrases: string[]): boolean {
 /**
  * Decide what happened to one AI finding. The first matching rule wins:
  *
+ * 0. dismissed: a person replied with a dismissal ("leaving as is") and never said it was fixed.
+ *               An explicit human decision beats an unrelated nearby change.
  * 1. addressed: code within `proximity` lines of the comment changed afterwards
  * 2. addressed: a human said "fixed"/"good catch" or gave a 👍, and the file changed afterwards
  * 3. dismissed: a 👎, a dismissal reply, or the thread was resolved with no nearby change
@@ -56,6 +58,10 @@ export function classify(
     finding.line !== null &&
     isNear(fileLines, finding.line, config.proximity, finding.endLine);
 
+  const saidDismissed = repliesMatch(finding, config.dismissedPhrases);
+  const saidFixed = repliesMatch(finding, config.addressedPhrases);
+  if (saidDismissed && !saidFixed) return result("dismissed", "reply dismisses the finding");
+
   if (nearbyChange) {
     return finding.source === "summary"
       ? result(
@@ -76,7 +82,7 @@ export function classify(
     );
   }
 
-  const saidAddressed = finding.reactions.up > 0 || repliesMatch(finding, config.addressedPhrases);
+  const saidAddressed = finding.reactions.up > 0 || saidFixed;
   if (saidAddressed && fileChanged) {
     return result("addressed", "reply or 👍 says addressed, and the file changed after the comment");
   }
@@ -85,7 +91,7 @@ export function classify(
   }
 
   if (finding.reactions.down > 0) return result("dismissed", "👎 reaction");
-  if (repliesMatch(finding, config.dismissedPhrases)) return result("dismissed", "reply dismisses the finding");
+  if (saidDismissed) return result("dismissed", "reply dismisses the finding");
   if (finding.isResolved) return result("dismissed", "thread resolved with no nearby code change");
 
   if (finding.isOutdated) return result("outdated", "thread outdated, but no nearby change found");

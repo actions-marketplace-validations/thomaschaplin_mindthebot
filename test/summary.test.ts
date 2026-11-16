@@ -243,3 +243,18 @@ describe("path and line formats", async () => {
     expect(resolvePath("index.ts", changes)).toBe("index.ts");
   });
 });
+
+describe("more severity formats", () => {
+  it("reads CodeRabbit labels in both the icon and the emoji style", () => {
+    const icon =
+      '<!-- coderabbit-ai-generated:v1 -->\n\n**<picture><img src="https://x/review-comment-icons-v1/major-16.svg" alt=""></picture> Major** · **Data Integrity**';
+    expect(extractSeverity(icon)).toBe("major");
+    expect(extractSeverity("_⚠️ Potential issue_ | _🟠 Major_\n\n**Missing await**")).toBe("major");
+    expect(extractSeverity("_🧹 Nitpick_ | _🔵 Trivial_")).toBe("trivial");
+  });
+
+  it("skips a leading HTML-comment metadata block", () => {
+    const body = `<!-- metadata:{"confidence":9,"steps":[{"text":"${"x".repeat(5000)}"}]} -->\n**[WARNING]** Missing null check`;
+    expect(extractSeverity(body)).toBe("warning");
+  });
+});

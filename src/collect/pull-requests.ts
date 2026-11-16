@@ -25,7 +25,7 @@ const QUERY = /* GraphQL */ `
           mergedAt
           headRefOid
           commits(last: 100) {
-            nodes { commit { oid committedDate } }
+            nodes { commit { oid committedDate parents { totalCount } } }
           }
           comments(first: 50) {
             nodes { databaseId url author { login } body createdAt lastEditedAt }
@@ -91,7 +91,7 @@ export interface RawPullRequest {
   updatedAt: string;
   mergedAt: string;
   headRefOid: string;
-  commits: { nodes: { commit: { oid: string; committedDate: string } }[] };
+  commits: { nodes: { commit: { oid: string; committedDate: string; parents?: { totalCount: number } } }[] };
   comments: { nodes: RawSummary[] };
   reviews: { nodes: RawSummary[] };
   reviewThreads: { nodes: RawThread[] };
@@ -155,7 +155,11 @@ export function toRecord(repo: string, pr: RawPullRequest, config: Config): Pull
       raised.push({ ...item, bot, commentId: c.databaseId, url: c.url, deliveredAt });
     }
   }
-  const commits = pr.commits.nodes.map((n) => n.commit);
+  const commits = pr.commits.nodes.map((n) => ({
+    oid: n.commit.oid,
+    committedDate: n.commit.committedDate,
+    isMerge: (n.commit.parents?.totalCount ?? 1) > 1,
+  }));
   // Some bots repeat their inline comments in the summary; count each issue once.
   const fromSummaries = summaryFindings(repo, pr.number, raised, commits, config).filter(
     (s) =>
@@ -178,6 +182,7 @@ export function toRecord(repo: string, pr: RawPullRequest, config: Config): Pull
     createdAt: pr.createdAt,
     mergedAt: pr.mergedAt,
     headOid: pr.headRefOid,
+    commits,
     findings,
     summaries,
   };
@@ -197,7 +202,7 @@ export async function fetchMergedPullRequests(
   let cursor: string | null = null;
 
   while (results.length < maxPrs) {
-    const page: QueryResult = await cache.wrap(["prs-v2", owner, name, cursor, Math.floor(cutoff / 3_600_000)], () =>
+    const page: QueryResult = await cache.wrap(["prs-v3", owner, name, cursor, Math.floor(cutoff / 3_600_000)], () =>
       client.graphql<QueryResult>(QUERY, { owner, name, cursor }),
     );
     const { nodes, pageInfo } = page.repository.pullRequests;

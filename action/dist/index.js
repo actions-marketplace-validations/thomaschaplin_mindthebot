@@ -49884,7 +49884,10 @@ var defaultConfig = {
     { name: "Greptile", login: "greptile-apps" },
     { name: "Copilot", login: "copilot-pull-request-reviewer" },
     { name: "CodeRabbit", login: "coderabbitai" },
-    { name: "Cursor Bugbot", login: "cursor" }
+    { name: "Cursor Bugbot", login: "cursor" },
+    { name: "Cubic", login: "cubic-dev-ai" },
+    { name: "Codex", login: "chatgpt-codex-connector" },
+    { name: "Gemini", login: "gemini-code-assist" }
   ],
   proximity: 3,
   summaryRequiresSeverity: true,
@@ -49908,7 +49911,15 @@ var defaultConfig = {
     "wontfix",
     "not relevant",
     "not applicable",
-    "this is fine"
+    "this is fine",
+    "leaving as is",
+    "leave as is",
+    "leaving it as is",
+    "keeping as is",
+    "keep as is",
+    "out of scope",
+    "known limitation",
+    "pre-existing"
   ]
 };
 async function loadConfig(path) {
@@ -50227,6 +50238,9 @@ function classify(finding, changes, config2) {
   const fileLines = finding.path && changes ? changes[resolvePath(finding.path, changes)] : void 0;
   const fileChanged = fileLines !== void 0;
   const nearbyChange = Array.isArray(fileLines) && finding.line !== null && isNear(fileLines, finding.line, config2.proximity, finding.endLine);
+  const saidDismissed = repliesMatch(finding, config2.dismissedPhrases);
+  const saidFixed = repliesMatch(finding, config2.addressedPhrases);
+  if (saidDismissed && !saidFixed) return result("dismissed", "reply dismisses the finding");
   if (nearbyChange) {
     return finding.source === "summary" ? result(
       "addressed",
@@ -50239,7 +50253,7 @@ function classify(finding, changes, config2) {
       changes === null ? "summary item; no diff available to check" : "summary item; no nearby change (summaries have no replies or resolution, so dismissed and ignored look the same)"
     );
   }
-  const saidAddressed = finding.reactions.up > 0 || repliesMatch(finding, config2.addressedPhrases);
+  const saidAddressed = finding.reactions.up > 0 || saidFixed;
   if (saidAddressed && fileChanged) {
     return result("addressed", "reply or \u{1F44D} says addressed, and the file changed after the comment");
   }
@@ -50247,38 +50261,61 @@ function classify(finding, changes, config2) {
     return result("addressed", "reply or \u{1F44D} says addressed (no diff available to confirm)");
   }
   if (finding.reactions.down > 0) return result("dismissed", "\u{1F44E} reaction");
-  if (repliesMatch(finding, config2.dismissedPhrases)) return result("dismissed", "reply dismisses the finding");
+  if (saidDismissed) return result("dismissed", "reply dismisses the finding");
   if (finding.isResolved) return result("dismissed", "thread resolved with no nearby code change");
   if (finding.isOutdated) return result("outdated", "thread outdated, but no nearby change found");
   return result("ignored", "no reply, reaction, resolution or nearby change");
 }
 
 // src/collect/changes.ts
-async function changedLinesSince(client, cache, repo, baseOid, headOid) {
+var FILE_LIMIT = 300;
+var MAX_COMMITS = 50;
+function toChangedLines(files, into = {}) {
+  for (const file2 of files) {
+    const lines = file2.patch === void 0 ? null : touchedOldLines(file2.patch);
+    for (const name of [file2.filename, file2.previous_filename]) {
+      if (!name) continue;
+      const existing = into[name];
+      if (existing === void 0 || existing === null) into[name] = lines ?? existing ?? null;
+      else if (lines) into[name] = [.../* @__PURE__ */ new Set([...existing, ...lines])].sort((a, b) => a - b);
+    }
+  }
+  return into;
+}
+var slim = (files) => (files ?? []).map((f) => ({ filename: f.filename, previous_filename: f.previous_filename, patch: f.patch }));
+async function compareFiles(client, cache, owner, name, base, head) {
+  return cache.wrap(["compare", owner, name, base, head], async () => {
+    const res = await client.request("GET /repos/{owner}/{repo}/compare/{basehead}", {
+      owner,
+      repo: name,
+      basehead: `${base}...${head}`
+    });
+    return { files: slim(res.data.files) };
+  });
+}
+async function commitFiles(client, cache, owner, name, oid) {
+  return cache.wrap(["commit", owner, name, oid], async () => {
+    const res = await client.request("GET /repos/{owner}/{repo}/commits/{ref}", { owner, repo: name, ref: oid });
+    return { files: slim(res.data.files) };
+  });
+}
+async function changedLinesSince(client, cache, repo, baseOid, headOid, prCommits = []) {
   if (baseOid === headOid) return {};
   const { owner, name } = splitRepo(repo);
+  const index = prCommits.findIndex((c) => c.oid === baseOid);
+  const after = index >= 0 ? prCommits.slice(index + 1) : prCommits;
+  const mergedBaseAfterComment = after.some((c) => c.isMerge);
   try {
-    const data = await cache.wrap(["compare", owner, name, baseOid, headOid], async () => {
-      const res = await client.request("GET /repos/{owner}/{repo}/compare/{basehead}", {
-        owner,
-        repo: name,
-        basehead: `${baseOid}...${headOid}`,
-        per_page: 300
-      });
-      const body = res.data;
-      return {
-        files: (body.files ?? []).map((f) => ({
-          filename: f.filename,
-          previous_filename: f.previous_filename,
-          patch: f.patch
-        }))
-      };
-    });
+    if (!mergedBaseAfterComment) {
+      const { files } = await compareFiles(client, cache, owner, name, baseOid, headOid);
+      if (files.length < FILE_LIMIT) return toChangedLines(files);
+    }
+    const own2 = after.filter((c) => !c.isMerge).slice(-MAX_COMMITS);
+    if (own2.length === 0) return after.length > 0 ? {} : null;
     const changed = {};
-    for (const file2 of data.files ?? []) {
-      const lines = file2.patch === void 0 ? null : touchedOldLines(file2.patch);
-      changed[file2.filename] = lines;
-      if (file2.previous_filename) changed[file2.previous_filename] = lines;
+    for (const commit of own2) {
+      const { files } = await commitFiles(client, cache, owner, name, commit.oid);
+      toChangedLines(files, changed);
     }
     return changed;
   } catch (error63) {
@@ -50315,9 +50352,13 @@ var EMOJI = [
   ["\u{1F7E1}", "nit"],
   ["\u{1F7E3}", "pre-existing"]
 ];
-function extractSeverity(body) {
-  const badge = /badges\/(p\d)\.svg/i.exec(body);
+var CODERABBIT = /(?:<\/picture>\s*|_(?:🔴|🟠|🟡|🔵|⚪)\s*)(critical|major|minor|trivial|info)(?![a-z])/i;
+function extractSeverity(raw) {
+  const badge = /badges\/(p\d)\.svg/i.exec(raw);
   if (badge) return badge[1].toLowerCase();
+  const body = raw.replace(/<!--[\s\S]*?-->/g, "").trimStart();
+  const rabbit = CODERABBIT.exec(body.slice(0, 600));
+  if (rabbit) return rabbit[1].toLowerCase();
   const head = body.slice(0, 200);
   const tag = new RegExp(`(?:\\[|\\*\\*)(${TAGS.join("|")})(?:\\]|\\*\\*|:)`, "i").exec(head);
   if (tag) return tag[1].toLowerCase();
@@ -50470,7 +50511,7 @@ var QUERY = (
           mergedAt
           headRefOid
           commits(last: 100) {
-            nodes { commit { oid committedDate } }
+            nodes { commit { oid committedDate parents { totalCount } } }
           }
           comments(first: 50) {
             nodes { databaseId url author { login } body createdAt lastEditedAt }
@@ -50547,7 +50588,11 @@ function toRecord(repo, pr, config2) {
       raised.push({ ...item, bot, commentId: c.databaseId, url: c.url, deliveredAt });
     }
   }
-  const commits = pr.commits.nodes.map((n) => n.commit);
+  const commits = pr.commits.nodes.map((n) => ({
+    oid: n.commit.oid,
+    committedDate: n.commit.committedDate,
+    isMerge: (n.commit.parents?.totalCount ?? 1) > 1
+  }));
   const fromSummaries = summaryFindings(repo, pr.number, raised, commits, config2).filter(
     (s) => !findings.some(
       (f) => f.bot === s.bot && f.path === s.path && f.line !== null && s.line !== null && f.line >= s.line - config2.proximity && f.line <= (s.endLine ?? s.line) + config2.proximity
@@ -50561,6 +50606,7 @@ function toRecord(repo, pr, config2) {
     createdAt: pr.createdAt,
     mergedAt: pr.mergedAt,
     headOid: pr.headRefOid,
+    commits,
     findings,
     summaries
   };
@@ -50572,7 +50618,7 @@ async function fetchMergedPullRequests(client, cache, repo, sinceMs, maxPrs) {
   let cursor = null;
   while (results.length < maxPrs) {
     const page = await cache.wrap(
-      ["prs-v2", owner, name, cursor, Math.floor(cutoff / 36e5)],
+      ["prs-v3", owner, name, cursor, Math.floor(cutoff / 36e5)],
       () => client.graphql(QUERY, { owner, name, cursor })
     );
     const { nodes, pageInfo } = page.repository.pullRequests;
@@ -50610,7 +50656,7 @@ async function run(client, cache, config2, options) {
         let changes;
         if (finding.commitOid) {
           if (!diffs.has(finding.commitOid)) {
-            diffs.set(finding.commitOid, await changedLinesSince(client, cache, repo, finding.commitOid, pr.headOid));
+            diffs.set(finding.commitOid, await changedLinesSince(client, cache, repo, finding.commitOid, pr.headOid, pr.commits));
           }
           changes = diffs.get(finding.commitOid);
         } else {

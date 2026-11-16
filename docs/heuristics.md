@@ -5,7 +5,12 @@ A **finding** is one issue raised by a configured AI reviewer. It comes from one
 - **Inline:** the first comment of a pull request review thread. Replies from other bots are ignored; replies from people are kept.
 - **Summary:** a numbered or bulleted item in a summary comment (a PR conversation comment or a review body) that points at a file and line. Some reviewers, such as `claude-code-action` set up for sticky comments, *only* report this way.
 
-For each finding, review-ledger compares the commit the comment was made on with the PR's final head commit (`GET /repos/{owner}/{repo}/compare/{base}...{head}`). It then works out which lines of the commented file changed afterwards, in the coordinates of the commented commit.
+For each finding, review-ledger works out which lines of the commented file changed after the comment:
+
+- **Normally**, it compares the commit the comment was made on with the PR's final head (`GET /repos/{owner}/{repo}/compare/{base}...{head}`). Line numbers are exact, in the commented commit's coordinates.
+- **If the base branch was merged into the PR after the comment** (common in big repos such as VS Code and PostHog), that comparison would include everyone else's changes. It can also span thousands of commits and hit GitHub's 300-file limit, hiding the real fix. In that case, and whenever the comparison is truncated, it combines the diffs of the PR's own non-merge commits after the comment (up to 50). Line numbers are then approximate, because each commit's diff is relative to its own parent.
+
+On a 30-day sample of 8 public repos, this fallback changed 84 of 646 outcomes, almost all from "dismissed" to "addressed" on threads whose replies said "Fixed in <sha>".
 
 ## Summary items
 
@@ -31,6 +36,7 @@ The first rule that matches wins.
 
 | # | Outcome | Rule |
 |---|---|---|
+| 0 | dismissed | A person replied with a dismissal phrase ("leaving as is", "out of scope", "false positive") and no reply says it was fixed. An explicit human decision beats an unrelated nearby change. |
 | 1 | addressed | A line within `proximity` (default 3) of the commented line (or range) changed after the comment. |
 | 2 | addressed | A person replied with an "addressed" phrase or gave the comment a 👍, **and** the file changed after the comment. |
 | 2b | addressed | The same as rule 2, but the diff couldn't be fetched (for example after a force-push), so the reply is taken at its word. |
@@ -53,7 +59,7 @@ Each classified finding in the JSON output carries a `reason` field saying which
 These are heuristics. They are cheap, explainable and mostly right, but not always.
 
 - **Nearby isn't the same as caused by.** A change near the comment might be unrelated. Rule 1 can overcount "addressed", especially on busy files.
-- **Merging the base branch into the PR** brings in other people's changes. The comparison can then show nearby changes the author didn't make.
+- **Merging the base branch into the PR** is handled by using the PR's own commits instead, but line numbers are then approximate: an earlier commit that adds lines above the comment shifts later ones.
 - **Force-pushes** can make the commented commit unreachable. Those findings fall back to replies and reactions.
 - **Fixes made in a different PR** look ignored or dismissed.
 - **Resolving a thread is ambiguous.** Some teams resolve threads to tidy up after fixing something elsewhere in the PR. Rule 5 counts that as dismissed.

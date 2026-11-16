@@ -14,14 +14,18 @@ It's read-only and needs no setup inside the repo.
 
 ## Sample report
 
-Two public repos, last 30 days, run on 16 Nov 2026:
+Eight well-known public repos, merged PRs from the last 30 days (up to 80 per repo), run on 16 Nov 2026:
 
-| Reviewer | PRs | Findings | Addressed | Dismissed | Ignored | Per PR | First comment |
-|---|---|---|---|---|---|---|---|
-| Claude (`anthropics/claude-code-action`) | 22 | 112 | 62 (55%) | 43 (38%) | 7 (6%) | 5.1 | 7m |
-| Cursor Bugbot (`getsentry/junior`) | 12 | 29 | 18 (62%) | 10 (34%) | 1 (3%) | 2.4 | 12m |
+| Reviewer | Where | PRs | Findings | Addressed | Dismissed | Ignored |
+|---|---|---|---|---|---|---|
+| Copilot | VS Code, supabase, cline, … | 103 | 152 | 79% | 20% | 1% |
+| Greptile | cline, PostHog | 81 | 173 | 64% | 36% | 1% |
+| CodeRabbit | supabase, TanStack Query, cal.com, … | 179 | 206 | 57% | 20% | 19% |
+| Claude | anthropics/claude-code-action | 22 | 112 | 54% | 39% | 6% |
 
-The full report also covers time to merge for PRs with and without AI findings, and the files where findings get dismissed most. Those files are good candidates for path exclusions or extra context in your review instructions.
+By severity, Greptile's P1s were addressed 73% of the time against 59% for P2s, and CodeRabbit's "major" 60% against 58% for "minor". The full report also covers time to merge with and without AI findings, and the files where findings get dismissed most.
+
+These numbers describe how each team responds to its reviewer, not which reviewer is "best": teams, codebases and settings differ.
 
 ## How it decides
 

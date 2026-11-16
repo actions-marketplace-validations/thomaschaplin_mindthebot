@@ -45,6 +45,13 @@ export interface SummaryComment {
   items: number;
 }
 
+export interface PrCommit {
+  oid: string;
+  committedDate: string;
+  /** True for merge commits, e.g. merging the base branch into the PR. */
+  isMerge: boolean;
+}
+
 export interface PullRequestRecord {
   repo: string;
   number: number;
@@ -52,6 +59,8 @@ export interface PullRequestRecord {
   createdAt: string;
   mergedAt: string;
   headOid: string;
+  /** The PR's commits, oldest first (up to the last 100). */
+  commits: PrCommit[];
   findings: Finding[];
   summaries: SummaryComment[];
 }
