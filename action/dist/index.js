@@ -28138,8 +28138,8 @@ var Summary = class {
    */
   addList(items, ordered = false) {
     const tag = ordered ? "ol" : "ul";
-    const listItems = items.map((item) => this.wrap("li", item)).join("");
-    const element = this.wrap(tag, listItems);
+    const listItems2 = items.map((item) => this.wrap("li", item)).join("");
+    const element = this.wrap(tag, listItems2);
     return this.addRaw(element).addEOL();
   }
   /**
@@ -49868,6 +49868,11 @@ var configSchema = external_exports.object({
   bots: external_exports.array(botMatcherSchema).min(1),
   /** How many lines either side of the commented line count as "near". */
   proximity: external_exports.number().int().min(0).max(50),
+  /**
+   * Only count summary-comment items that carry a severity label (e.g. [WARNING], a P1 badge).
+   * Bots also cite file:line as evidence for points that aren't issues; this keeps those out.
+   */
+  summaryRequiresSeverity: external_exports.boolean(),
   addressedPhrases: external_exports.array(external_exports.string()),
   dismissedPhrases: external_exports.array(external_exports.string())
 });
@@ -49882,6 +49887,7 @@ var defaultConfig = {
     { name: "Cursor Bugbot", login: "cursor" }
   ],
   proximity: 3,
+  summaryRequiresSeverity: true,
   addressedPhrases: [
     "fixed",
     "done",
@@ -49944,12 +49950,20 @@ async function upsertIssue(client, repo, title, body) {
 
 // src/report/markdown.ts
 var pct = (n) => `${Math.round(n * 100)}%`;
+var countWithRate = (count, rate, total) => total === 0 ? "\u2013" : `${count} (${pct(rate)})`;
 var num = (n, digits = 1) => n === null ? "\u2013" : n.toFixed(digits);
 function duration3(minutes) {
   if (minutes === null) return "\u2013";
   if (minutes < 60) return `${Math.round(minutes)}m`;
   if (minutes < 48 * 60) return `${(minutes / 60).toFixed(1)}h`;
   return `${(minutes / 1440).toFixed(1)}d`;
+}
+function findingsCell(s) {
+  if (s.inlineFindings > 0 && s.summaryFindings > 0) {
+    return `${s.findings} (${s.inlineFindings} inline, ${s.summaryFindings} summary)`;
+  }
+  if (s.summaryFindings > 0) return `${s.findings} (summary)`;
+  return String(s.findings);
 }
 function botTable(rows, withRepo) {
   const head = [
@@ -49960,6 +49974,7 @@ function botTable(rows, withRepo) {
     "Addressed",
     "Dismissed",
     "Ignored",
+    "Not addressed",
     "Outdated",
     "Per PR",
     "First comment"
@@ -49971,12 +49986,13 @@ function botTable(rows, withRepo) {
         ...withRepo ? [s.repo] : [],
         s.bot,
         s.prsReviewed,
-        s.findings,
-        `${s.addressed} (${pct(s.addressedRate)})`,
-        `${s.dismissed} (${pct(s.dismissedRate)})`,
-        `${s.ignored} (${pct(s.ignoredRate)})`,
-        s.outdated,
-        num(s.findingsPerPr),
+        findingsCell(s),
+        countWithRate(s.addressed, s.addressedRate, s.findings),
+        countWithRate(s.dismissed, s.dismissedRate, s.findings),
+        countWithRate(s.ignored, s.ignoredRate, s.findings),
+        countWithRate(s.notAddressed, s.notAddressedRate, s.findings),
+        s.findings === 0 ? "\u2013" : s.outdated,
+        s.findings === 0 ? "\u2013" : num(s.findingsPerPr),
         duration3(s.medianFirstCommentMinutes)
       ].join(" | ")} |`
     );
@@ -49998,12 +50014,23 @@ function renderMarkdown(ledger) {
   } else {
     out.push(botTable(ledger.byBot, false));
     out.push(
-      "_**Addressed**: code near the comment changed afterwards, or a reply/\u{1F44D} confirmed it. **Dismissed**: \u{1F44E}, a dismissing reply, or resolved with no nearby change. **Ignored**: no response. **Outdated**: GitHub marked the thread outdated but no nearby change was found. **Per PR**: inline findings per PR the reviewer commented on. **First comment**: median time from PR opened._"
+      "_**Addressed**: code near the comment changed afterwards, or a reply/\u{1F44D} confirmed it. **Dismissed**: \u{1F44E}, a dismissing reply, or resolved with no nearby change. **Ignored**: no response. **Not addressed**: a summary-comment item with no nearby change (summaries have no replies or resolution, so dismissed and ignored look the same). **Outdated**: GitHub marked the thread outdated but no nearby change was found. **Per PR**: findings per PR the reviewer commented on. **First comment**: median time from PR opened to the review being delivered._"
     );
   }
   if (ledger.repos.length > 1 && ledger.byRepoAndBot.length > 0) {
     out.push(`## By repo`);
     out.push(botTable(ledger.byRepoAndBot, true));
+  }
+  if (ledger.bySeverity.length > 0) {
+    out.push(`## By severity`);
+    out.push(
+      [
+        "| Reviewer | Severity | Findings | Addressed |",
+        "|---|---|---|---|",
+        ...ledger.bySeverity.map((s) => `| ${s.bot} | ${s.severity} | ${s.findings} | ${s.addressed} (${pct(s.addressedRate)}) |`)
+      ].join("\n")
+    );
+    out.push("_Severity as labelled by the reviewer itself. A low addressed rate on its highest severity is the number to look at first._");
   }
   out.push(`## Time to merge`);
   out.push(
@@ -50073,18 +50100,23 @@ function botStats(bot, repo, prs, findings) {
   const addressed = count("addressed");
   const dismissed = count("dismissed");
   const ignored = count("ignored");
+  const notAddressed = count("not-addressed");
   return {
     bot,
     repo,
     prsReviewed,
     findings: mine.length,
+    inlineFindings: mine.filter((f) => f.source === "inline").length,
+    summaryFindings: mine.filter((f) => f.source === "summary").length,
     addressed,
     dismissed,
     ignored,
     outdated: count("outdated"),
+    notAddressed,
     addressedRate: ratio(addressed, mine.length),
     dismissedRate: ratio(dismissed, mine.length),
     ignoredRate: ratio(ignored, mine.length),
+    notAddressedRate: ratio(notAddressed, mine.length),
     findingsPerPr: ratio(mine.length, prsReviewed),
     summaryComments,
     medianFirstCommentMinutes: median(firstCommentMinutes)
@@ -50100,6 +50132,16 @@ function buildLedger(prs, findings, options) {
     const repoFindings = findings.filter((f) => f.repo === repo);
     return bots.map((bot) => botStats(bot, repo, repoPrs, repoFindings)).filter((s) => s.prsReviewed > 0);
   });
+  const severityGroups = /* @__PURE__ */ new Map();
+  for (const f of findings) {
+    if (!f.severity) continue;
+    const key = `${f.bot}\0${f.severity}`;
+    const entry = severityGroups.get(key) ?? { bot: f.bot, severity: f.severity, findings: 0, addressed: 0, addressedRate: 0 };
+    entry.findings += 1;
+    if (f.outcome === "addressed") entry.addressed += 1;
+    severityGroups.set(key, entry);
+  }
+  const bySeverity = [...severityGroups.values()].map((s) => ({ ...s, addressedRate: ratio(s.addressed, s.findings) })).sort((a, b) => a.bot.localeCompare(b.bot) || a.severity.localeCompare(b.severity));
   const dismissedByFile = /* @__PURE__ */ new Map();
   for (const f of findings) {
     if (f.outcome !== "dismissed" || !f.path) continue;
@@ -50119,6 +50161,7 @@ function buildLedger(prs, findings, options) {
     timeToMerge: { withAiFindings: mergeTimes(withAi), withoutAiFindings: mergeTimes(withoutAi) },
     byBot,
     byRepoAndBot,
+    bySeverity,
     topDismissedFiles: [...dismissedByFile.values()].sort((a, b) => b.dismissed - a.dismissed).slice(0, 10),
     findings
   };
@@ -50156,13 +50199,19 @@ function touchedOldLines(patch) {
   }
   return [...touched].sort((a, b) => a - b);
 }
-function isNear(touched, line, proximity) {
-  return touched.some((t) => Math.abs(t - line) <= proximity);
+function isNear(touched, line, proximity, endLine = null) {
+  const end = endLine ?? line;
+  return touched.some((t) => t >= line - proximity && t <= end + proximity);
 }
 
 // src/classify/rules.ts
 function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function resolvePath(path, changes) {
+  if (path in changes) return path;
+  const candidates = Object.keys(changes).filter((p) => p.endsWith(`/${path}`));
+  return candidates.length === 1 ? candidates[0] : path;
 }
 function repliesMatch(finding, phrases) {
   if (phrases.length === 0) return false;
@@ -50175,11 +50224,20 @@ function classify(finding, changes, config2) {
     outcome,
     reason
   });
-  const fileLines = finding.path && changes ? changes[finding.path] : void 0;
+  const fileLines = finding.path && changes ? changes[resolvePath(finding.path, changes)] : void 0;
   const fileChanged = fileLines !== void 0;
-  const nearbyChange = Array.isArray(fileLines) && finding.line !== null && isNear(fileLines, finding.line, config2.proximity);
+  const nearbyChange = Array.isArray(fileLines) && finding.line !== null && isNear(fileLines, finding.line, config2.proximity, finding.endLine);
   if (nearbyChange) {
-    return result("addressed", `code within ${config2.proximity} lines changed after the comment`);
+    return finding.source === "summary" ? result(
+      "addressed",
+      finding.repeats > 0 ? `code within ${config2.proximity} lines changed after the last review that repeated it` : `code within ${config2.proximity} lines changed after the summary item`
+    ) : result("addressed", `code within ${config2.proximity} lines changed after the comment`);
+  }
+  if (finding.source === "summary") {
+    return result(
+      "not-addressed",
+      changes === null ? "summary item; no diff available to check" : "summary item; no nearby change (summaries have no replies or resolution, so dismissed and ignored look the same)"
+    );
   }
   const saidAddressed = finding.reactions.up > 0 || repliesMatch(finding, config2.addressedPhrases);
   if (saidAddressed && fileChanged) {
@@ -50250,6 +50308,147 @@ function isBotLogin(matchers, login) {
   return matchers.some((m) => normaliseLogin(m.login) === author);
 }
 
+// src/detect/severity.ts
+var TAGS = ["critical", "blocker", "blocking", "high", "error", "warning", "medium", "low", "note", "info", "nit", "suggestion"];
+var EMOJI = [
+  ["\u{1F534}", "important"],
+  ["\u{1F7E1}", "nit"],
+  ["\u{1F7E3}", "pre-existing"]
+];
+function extractSeverity(body) {
+  const badge = /badges\/(p\d)\.svg/i.exec(body);
+  if (badge) return badge[1].toLowerCase();
+  const head = body.slice(0, 200);
+  const tag = new RegExp(`(?:\\[|\\*\\*)(${TAGS.join("|")})(?:\\]|\\*\\*|:)`, "i").exec(head);
+  if (tag) return tag[1].toLowerCase();
+  for (const [emoji3, label] of EMOJI) {
+    if (head.trimStart().startsWith(emoji3)) return label;
+  }
+  return null;
+}
+
+// src/collect/summary-findings.ts
+function words(text) {
+  return new Set(text.toLowerCase().match(/[a-z0-9]{3,}/g) ?? []);
+}
+function titleSimilarity(a, b) {
+  const wa = words(a);
+  const wb = words(b);
+  if (wa.size === 0 || wb.size === 0) return 0;
+  let shared = 0;
+  for (const w of wa) if (wb.has(w)) shared += 1;
+  return shared / (wa.size + wb.size - shared);
+}
+function rangesNear(a, b, proximity) {
+  const aEnd = a.endLine ?? a.line;
+  const bEnd = b.endLine ?? b.line;
+  return a.line - proximity <= bEnd && b.line - proximity <= aEnd;
+}
+function sameIssue(a, b, proximity) {
+  if (a.path !== b.path) return false;
+  return rangesNear(a, b, proximity) || titleSimilarity(a.title, b.title) >= 0.4;
+}
+function commitAt(commits, at) {
+  const time3 = Date.parse(at);
+  let best = null;
+  for (const c of commits) {
+    const t = Date.parse(c.committedDate);
+    if (t <= time3 && (!best || t >= Date.parse(best.committedDate))) best = c;
+  }
+  return best?.oid ?? null;
+}
+function summaryFindings(repo, pr, items, commits, config2) {
+  const sorted = [...items].sort((a, b) => a.deliveredAt.localeCompare(b.deliveredAt));
+  const groups2 = [];
+  for (const item of sorted) {
+    const group = groups2.find((g) => g[0].bot === item.bot && sameIssue(g[g.length - 1], item, config2.proximity));
+    if (group) group.push(item);
+    else groups2.push([item]);
+  }
+  return groups2.map((group) => {
+    const first = group[0];
+    const latest = group[group.length - 1];
+    return {
+      repo,
+      pr,
+      bot: first.bot,
+      source: "summary",
+      severity: first.severity,
+      commentId: first.commentId,
+      url: first.url,
+      createdAt: first.deliveredAt,
+      body: first.text,
+      path: latest.path,
+      line: latest.line,
+      endLine: latest.endLine,
+      commitOid: commitAt(commits, latest.deliveredAt),
+      isResolved: false,
+      isOutdated: false,
+      reactions: { up: 0, down: 0 },
+      replies: [],
+      repeats: group.length - 1
+    };
+  });
+}
+
+// src/collect/summary-items.ts
+var ITEM_START = /^(\d+[.)]|[-*])\s+/;
+var BACKTICK_REF = /`([\w@./-]+\.[A-Za-z0-9]+):(\d+)(?:-(\d+))?(?:,\d+(?:-\d+)?)*`/;
+var BLOB_LINK = /\/blob\/[^/\s)]+\/([^#\s)]+)#L(\d+)(?:-L(\d+))?/;
+function listItems(body) {
+  const items = [];
+  let current = null;
+  let sawBlank = false;
+  for (const line of body.split("\n")) {
+    if (ITEM_START.test(line)) {
+      if (current) items.push(current.join("\n"));
+      current = [line];
+      sawBlank = false;
+      continue;
+    }
+    if (!current) continue;
+    if (line.trim() === "") {
+      sawBlank = true;
+      current.push(line);
+      continue;
+    }
+    if (sawBlank && !/^\s/.test(line)) {
+      items.push(current.join("\n"));
+      current = null;
+      continue;
+    }
+    current.push(line);
+  }
+  if (current) items.push(current.join("\n"));
+  return items;
+}
+function locate(text) {
+  const match = BACKTICK_REF.exec(text) ?? BLOB_LINK.exec(text);
+  if (!match) return null;
+  const line = Number(match[2]);
+  const end = match[3] ? Number(match[3]) : null;
+  return { path: decodeURIComponent(match[1]), line, endLine: end !== null && end > line ? end : null };
+}
+function titleOf(text) {
+  const bold = /\*\*(.+?)\*\*/.exec(text);
+  const raw = bold ? bold[1] : text.replace(ITEM_START, "").split("\n")[0];
+  return raw.trim().slice(0, 140);
+}
+function extractSummaryItems(body) {
+  const result = [];
+  for (const text of listItems(body)) {
+    const location = locate(text);
+    if (!location) continue;
+    result.push({
+      title: titleOf(text),
+      text,
+      ...location,
+      severity: extractSeverity(text.replace(ITEM_START, ""))
+    });
+  }
+  return result;
+}
+
 // src/collect/pull-requests.ts
 var QUERY = (
   /* GraphQL */
@@ -50270,11 +50469,14 @@ var QUERY = (
           updatedAt
           mergedAt
           headRefOid
+          commits(last: 100) {
+            nodes { commit { oid committedDate } }
+          }
           comments(first: 50) {
-            nodes { author { login } body createdAt }
+            nodes { databaseId url author { login } body createdAt lastEditedAt }
           }
           reviews(first: 50) {
-            nodes { author { login } body createdAt }
+            nodes { databaseId url author { login } body createdAt lastEditedAt }
           }
           reviewThreads(first: 100) {
             nodes {
@@ -50315,25 +50517,43 @@ function toRecord(repo, pr, config2) {
       repo,
       pr: pr.number,
       bot,
+      source: "inline",
+      severity: extractSeverity(first.body),
       commentId: first.databaseId,
       url: first.url,
       createdAt: first.createdAt,
       body: first.body,
       path: thread.path,
       line: thread.originalLine,
+      endLine: null,
       commitOid: first.originalCommit?.oid ?? null,
       isResolved: thread.isResolved,
       isOutdated: thread.isOutdated,
       reactions: { up: reactionCount(first, "THUMBS_UP"), down: reactionCount(first, "THUMBS_DOWN") },
-      replies: rest.filter((c) => !isBotLogin(config2.bots, c.author?.login)).map((c) => ({ author: c.author?.login ?? "ghost", body: c.body, createdAt: c.createdAt }))
+      replies: rest.filter((c) => !isBotLogin(config2.bots, c.author?.login)).map((c) => ({ author: c.author?.login ?? "ghost", body: c.body, createdAt: c.createdAt })),
+      repeats: 0
     });
   }
   const summaries = [];
+  const raised = [];
   for (const c of [...pr.comments.nodes, ...pr.reviews.nodes]) {
     if (!c.body.trim()) continue;
     const bot = detectBot(config2.bots, c.author?.login, c.body);
-    if (bot) summaries.push({ bot, createdAt: c.createdAt });
+    if (!bot) continue;
+    const deliveredAt = c.lastEditedAt ?? c.createdAt;
+    const items = extractSummaryItems(c.body).filter((i) => !config2.summaryRequiresSeverity || i.severity !== null);
+    summaries.push({ bot, createdAt: deliveredAt, items: items.length });
+    for (const item of items) {
+      raised.push({ ...item, bot, commentId: c.databaseId, url: c.url, deliveredAt });
+    }
   }
+  const commits = pr.commits.nodes.map((n) => n.commit);
+  const fromSummaries = summaryFindings(repo, pr.number, raised, commits, config2).filter(
+    (s) => !findings.some(
+      (f) => f.bot === s.bot && f.path === s.path && f.line !== null && s.line !== null && f.line >= s.line - config2.proximity && f.line <= (s.endLine ?? s.line) + config2.proximity
+    )
+  );
+  findings.push(...fromSummaries);
   return {
     repo,
     number: pr.number,
@@ -50352,7 +50572,7 @@ async function fetchMergedPullRequests(client, cache, repo, sinceMs, maxPrs) {
   let cursor = null;
   while (results.length < maxPrs) {
     const page = await cache.wrap(
-      ["prs", owner, name, cursor, Math.floor(cutoff / 36e5)],
+      ["prs-v2", owner, name, cursor, Math.floor(cutoff / 36e5)],
       () => client.graphql(QUERY, { owner, name, cursor })
     );
     const { nodes, pageInfo } = page.repository.pullRequests;
@@ -50454,7 +50674,12 @@ async function main() {
       Object.fromEntries(
         ledger.byBot.map((s) => [
           s.bot,
-          { findings: s.findings, addressedRate: s.addressedRate, dismissedRate: s.dismissedRate }
+          {
+            findings: s.findings,
+            addressedRate: s.addressedRate,
+            dismissedRate: s.dismissedRate,
+            notAddressedRate: s.notAddressedRate
+          }
         ])
       )
     )

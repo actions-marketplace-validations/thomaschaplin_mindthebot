@@ -26,6 +26,7 @@ export async function sendToDatadog(ledger: Ledger): Promise<void> {
     client.gauge("addressed_rate", s.addressedRate, tags);
     client.gauge("dismissed_rate", s.dismissedRate, tags);
     client.gauge("ignored_rate", s.ignoredRate, tags);
+    client.gauge("not_addressed_rate", s.notAddressedRate, tags);
     client.gauge("findings_per_pr", s.findingsPerPr, tags);
     if (s.medianFirstCommentMinutes !== null) {
       client.gauge("first_comment_minutes", s.medianFirstCommentMinutes, tags);

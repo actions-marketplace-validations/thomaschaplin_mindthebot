@@ -4,7 +4,7 @@
 
 Teams are adding AI reviewers to every pull request: Claude, Greptile, Copilot, CodeRabbit, Cursor Bugbot. Few teams measure whether those comments lead to anything. Without data, people who find a bot noisy can't prove it, people who like it can't prove it catches real issues, and nobody knows whether a prompt or model change made it better or worse.
 
-`review-ledger` reads your merged PRs and scores every inline AI comment as **addressed**, **dismissed** or **ignored**:
+`review-ledger` reads your merged PRs and scores every issue an AI reviewer raised, whether as an inline comment or as an item in a summary comment, as **addressed**, **dismissed** or **ignored**:
 
 ```bash
 npx review-ledger --repo owner/name --since 30d
@@ -30,6 +30,9 @@ For each AI comment, it compares the commit the comment was made on with the PR'
 - **Addressed:** code within 3 lines of the comment changed afterwards, or someone replied "fixed" / "good catch" (or gave a 👍) and the file changed.
 - **Dismissed:** a 👎, a reply like "intentional" or "false positive", or the thread was resolved with no nearby change.
 - **Ignored:** no reply, reaction, resolution or nearby change.
+- **Not addressed:** for issues listed in a summary comment, which have no replies or resolution: no nearby change.
+
+Summary comments are parsed for numbered items with a severity and a `file:line`, such as `claude-code-action`'s sticky "Code Review -- 2 issue(s) found" comment. Re-reviews that repeat an open issue are merged, and the issue is checked from the last review that repeated it. Results are also broken down by the severity each reviewer gave (P1/P2, warning/note, and so on).
 
 Every finding in the JSON output includes the rule that decided it, so any number can be audited. These are heuristics, and they have limits: a nearby change isn't proof of cause, and fixes made in another PR look ignored. **[docs/heuristics.md](docs/heuristics.md)** explains the rules, the known limits, and how to check them against your own labels.
 
@@ -115,7 +118,7 @@ npm run check-dist  # rebuild and fail if the committed Action bundle is out of 
 
 - [x] GitHub Action: a weekly report as a job summary or an issue
 - [ ] A 30-finding hand-labelled agreement check, with the rate published here
-- [ ] Classify summary comments by their bullet points
+- [x] Score issues listed in summary comments, with severity breakdown
 - [ ] Group findings by category (bug, security, style)
 - [ ] Pair with an eval harness of planted bugs, to measure what reviewers *miss*, not just what they say
 

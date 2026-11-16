@@ -6,6 +6,17 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Reviewers sometimes cite a path relative to a package, or just a filename
+ * (`adapter.ts:103`). If there's no exact match, use the one changed file
+ * whose path ends with it. Ambiguous matches are left unresolved.
+ */
+export function resolvePath(path: string, changes: ChangedLines): string {
+  if (path in changes) return path;
+  const candidates = Object.keys(changes).filter((p) => p.endsWith(`/${path}`));
+  return candidates.length === 1 ? candidates[0]! : path;
+}
+
 /** True if any reply contains one of the phrases as whole words, case-insensitively. */
 export function repliesMatch(finding: Finding, phrases: string[]): boolean {
   if (phrases.length === 0) return false;
@@ -22,6 +33,9 @@ export function repliesMatch(finding: Finding, phrases: string[]): boolean {
  * 4. outdated:  GitHub marked the thread outdated, but no nearby change was found
  * 5. ignored:   none of the above
  *
+ * Summary items (from a bot's summary comment) have no replies, reactions or
+ * resolution, so they are either addressed by rule 1 or "not-addressed".
+ *
  * `changes` is undefined when no diff was needed, and null when one couldn't be fetched.
  */
 export function classify(
@@ -35,13 +49,31 @@ export function classify(
     reason,
   });
 
-  const fileLines = finding.path && changes ? changes[finding.path] : undefined;
+  const fileLines = finding.path && changes ? changes[resolvePath(finding.path, changes)] : undefined;
   const fileChanged = fileLines !== undefined;
   const nearbyChange =
-    Array.isArray(fileLines) && finding.line !== null && isNear(fileLines, finding.line, config.proximity);
+    Array.isArray(fileLines) &&
+    finding.line !== null &&
+    isNear(fileLines, finding.line, config.proximity, finding.endLine);
 
   if (nearbyChange) {
-    return result("addressed", `code within ${config.proximity} lines changed after the comment`);
+    return finding.source === "summary"
+      ? result(
+          "addressed",
+          finding.repeats > 0
+            ? `code within ${config.proximity} lines changed after the last review that repeated it`
+            : `code within ${config.proximity} lines changed after the summary item`,
+        )
+      : result("addressed", `code within ${config.proximity} lines changed after the comment`);
+  }
+
+  if (finding.source === "summary") {
+    return result(
+      "not-addressed",
+      changes === null
+        ? "summary item; no diff available to check"
+        : "summary item; no nearby change (summaries have no replies or resolution, so dismissed and ignored look the same)",
+    );
   }
 
   const saidAddressed = finding.reactions.up > 0 || repliesMatch(finding, config.addressedPhrases);

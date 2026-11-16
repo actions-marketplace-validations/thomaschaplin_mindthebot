@@ -9,13 +9,20 @@ export interface BotStats {
   /** PRs where this bot left at least one comment of any kind. */
   prsReviewed: number;
   findings: number;
+  /** Findings from inline review threads. */
+  inlineFindings: number;
+  /** Findings from file-and-line items in summary comments. */
+  summaryFindings: number;
   addressed: number;
   dismissed: number;
   ignored: number;
   outdated: number;
+  /** Summary items with no nearby change (dismissed and ignored can't be told apart). */
+  notAddressed: number;
   addressedRate: number;
   dismissedRate: number;
   ignoredRate: number;
+  notAddressedRate: number;
   findingsPerPr: number;
   summaryComments: number;
   /** Median minutes from PR opened to this bot's first comment. */
@@ -28,6 +35,14 @@ export interface MergeTimes {
   p75Hours: number | null;
 }
 
+export interface SeverityStats {
+  bot: string;
+  severity: string;
+  findings: number;
+  addressed: number;
+  addressedRate: number;
+}
+
 export interface Ledger {
   generatedAt: string;
   since: string;
@@ -37,6 +52,7 @@ export interface Ledger {
   timeToMerge: { withAiFindings: MergeTimes; withoutAiFindings: MergeTimes };
   byBot: BotStats[];
   byRepoAndBot: BotStats[];
+  bySeverity: SeverityStats[];
   topDismissedFiles: { repo: string; path: string; dismissed: number }[];
   findings: ClassifiedFinding[];
 }
@@ -72,18 +88,23 @@ function botStats(
   const addressed = count("addressed");
   const dismissed = count("dismissed");
   const ignored = count("ignored");
+  const notAddressed = count("not-addressed");
   return {
     bot,
     repo,
     prsReviewed,
     findings: mine.length,
+    inlineFindings: mine.filter((f) => f.source === "inline").length,
+    summaryFindings: mine.filter((f) => f.source === "summary").length,
     addressed,
     dismissed,
     ignored,
     outdated: count("outdated"),
+    notAddressed,
     addressedRate: ratio(addressed, mine.length),
     dismissedRate: ratio(dismissed, mine.length),
     ignoredRate: ratio(ignored, mine.length),
+    notAddressedRate: ratio(notAddressed, mine.length),
     findingsPerPr: ratio(mine.length, prsReviewed),
     summaryComments,
     medianFirstCommentMinutes: median(firstCommentMinutes),
@@ -108,6 +129,19 @@ export function buildLedger(
       .filter((s) => s.prsReviewed > 0);
   });
 
+  const severityGroups = new Map<string, SeverityStats>();
+  for (const f of findings) {
+    if (!f.severity) continue;
+    const key = `${f.bot}\u0000${f.severity}`;
+    const entry = severityGroups.get(key) ?? { bot: f.bot, severity: f.severity, findings: 0, addressed: 0, addressedRate: 0 };
+    entry.findings += 1;
+    if (f.outcome === "addressed") entry.addressed += 1;
+    severityGroups.set(key, entry);
+  }
+  const bySeverity = [...severityGroups.values()]
+    .map((s) => ({ ...s, addressedRate: ratio(s.addressed, s.findings) }))
+    .sort((a, b) => a.bot.localeCompare(b.bot) || a.severity.localeCompare(b.severity));
+
   const dismissedByFile = new Map<string, { repo: string; path: string; dismissed: number }>();
   for (const f of findings) {
     if (f.outcome !== "dismissed" || !f.path) continue;
@@ -129,6 +163,7 @@ export function buildLedger(
     timeToMerge: { withAiFindings: mergeTimes(withAi), withoutAiFindings: mergeTimes(withoutAi) },
     byBot,
     byRepoAndBot,
+    bySeverity,
     topDismissedFiles: [...dismissedByFile.values()].sort((a, b) => b.dismissed - a.dismissed).slice(0, 10),
     findings,
   };

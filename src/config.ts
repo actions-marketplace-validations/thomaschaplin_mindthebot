@@ -15,6 +15,11 @@ export const configSchema = z.object({
   bots: z.array(botMatcherSchema).min(1),
   /** How many lines either side of the commented line count as "near". */
   proximity: z.number().int().min(0).max(50),
+  /**
+   * Only count summary-comment items that carry a severity label (e.g. [WARNING], a P1 badge).
+   * Bots also cite file:line as evidence for points that aren't issues; this keeps those out.
+   */
+  summaryRequiresSeverity: z.boolean(),
   addressedPhrases: z.array(z.string()),
   dismissedPhrases: z.array(z.string()),
 });
@@ -33,6 +38,7 @@ export const defaultConfig: Config = {
     { name: "Cursor Bugbot", login: "cursor" },
   ],
   proximity: 3,
+  summaryRequiresSeverity: true,
   addressedPhrases: [
     "fixed",
     "done",

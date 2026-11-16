@@ -5,11 +5,18 @@ export interface Reply {
   createdAt: string;
 }
 
-/** One inline comment from an AI reviewer: the first comment of a review thread. */
+/**
+ * One issue raised by an AI reviewer. It comes either from an inline review
+ * thread, or from a numbered item in a summary comment that points at a file
+ * and line.
+ */
 export interface Finding {
   repo: string;
   pr: number;
   bot: string;
+  source: "inline" | "summary";
+  /** Normalised severity label (e.g. "p1", "warning", "important"), if the reviewer gave one. */
+  severity: string | null;
   commentId: number;
   url: string;
   createdAt: string;
@@ -17,18 +24,25 @@ export interface Finding {
   path: string | null;
   /** Line in the file at `commitOid` that the comment points at. */
   line: number | null;
+  /** Last line, when the reviewer pointed at a range. */
+  endLine: number | null;
   /** The commit the comment was made against. */
   commitOid: string | null;
   isResolved: boolean;
   isOutdated: boolean;
   reactions: { up: number; down: number };
   replies: Reply[];
+  /** Summary items only: how many later reviews raised the same issue again. */
+  repeats: number;
 }
 
 /** A bot comment that isn't tied to a line: a review body or a PR conversation comment. */
 export interface SummaryComment {
   bot: string;
+  /** When the review was delivered: the last edit if the bot posts a placeholder and edits it. */
   createdAt: string;
+  /** How many file-and-line items were extracted from it. */
+  items: number;
 }
 
 export interface PullRequestRecord {
@@ -48,7 +62,11 @@ export interface PullRequestRecord {
  */
 export type ChangedLines = Record<string, number[] | null>;
 
-export type Outcome = "addressed" | "dismissed" | "ignored" | "outdated";
+/**
+ * "not-addressed" is for summary items: they have no replies, reactions or
+ * resolution, so a dismissal can't be told apart from no response.
+ */
+export type Outcome = "addressed" | "dismissed" | "ignored" | "outdated" | "not-addressed";
 
 export interface ClassifiedFinding extends Finding {
   outcome: Outcome;

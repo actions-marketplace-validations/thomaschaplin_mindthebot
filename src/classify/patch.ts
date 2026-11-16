@@ -41,7 +41,8 @@ export function touchedOldLines(patch: string): number[] {
   return [...touched].sort((a, b) => a - b);
 }
 
-/** True if any touched line is within `proximity` lines of `line`. */
-export function isNear(touched: number[], line: number, proximity: number): boolean {
-  return touched.some((t) => Math.abs(t - line) <= proximity);
+/** True if any touched line is within `proximity` lines of `line` (or of the range `line`–`endLine`). */
+export function isNear(touched: number[], line: number, proximity: number, endLine: number | null = null): boolean {
+  const end = endLine ?? line;
+  return touched.some((t) => t >= line - proximity && t <= end + proximity);
 }

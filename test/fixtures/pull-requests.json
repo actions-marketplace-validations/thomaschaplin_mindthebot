@@ -1,7 +1,14 @@
 {
   "repo": "acme/api",
   "changes": {
-    "c1": { "src/users.ts": [41], "README.md": [3] },
+    "c1": {
+      "src/users.ts": [
+        41
+      ],
+      "README.md": [
+        3
+      ]
+    },
     "c2": {}
   },
   "pullRequests": [
@@ -14,14 +21,50 @@
       "headRefOid": "h10",
       "comments": {
         "nodes": [
-          { "author": { "login": "claude" }, "body": "## Review summary\nTwo issues found.", "createdAt": "2026-11-02T09:05:00Z" },
-          { "author": { "login": "github-actions" }, "body": "Coverage: 81%", "createdAt": "2026-11-02T09:07:00Z" }
+          {
+            "author": {
+              "login": "claude"
+            },
+            "body": "## Review summary\nTwo issues found.",
+            "createdAt": "2026-11-02T09:05:00Z",
+            "databaseId": 1000,
+            "url": "https://github.com/acme/api/pull/10#issuecomment-1000",
+            "lastEditedAt": null
+          },
+          {
+            "author": {
+              "login": "github-actions"
+            },
+            "body": "Coverage: 81%",
+            "createdAt": "2026-11-02T09:07:00Z",
+            "databaseId": 1001,
+            "url": "https://github.com/acme/api/pull/10#issuecomment-1001",
+            "lastEditedAt": null
+          }
         ]
       },
       "reviews": {
         "nodes": [
-          { "author": { "login": "greptile-apps" }, "body": "", "createdAt": "2026-11-02T09:10:00Z" },
-          { "author": { "login": "alice" }, "body": "LGTM", "createdAt": "2026-11-02T14:00:00Z" }
+          {
+            "author": {
+              "login": "greptile-apps"
+            },
+            "body": "",
+            "createdAt": "2026-11-02T09:10:00Z",
+            "databaseId": 1050,
+            "url": "https://github.com/acme/api/pull/10#issuecomment-1050",
+            "lastEditedAt": null
+          },
+          {
+            "author": {
+              "login": "alice"
+            },
+            "body": "LGTM",
+            "createdAt": "2026-11-02T14:00:00Z",
+            "databaseId": 1051,
+            "url": "https://github.com/acme/api/pull/10#issuecomment-1051",
+            "lastEditedAt": null
+          }
         ]
       },
       "reviewThreads": {
@@ -36,28 +79,47 @@
                 {
                   "databaseId": 1001,
                   "url": "https://github.com/acme/api/pull/10#discussion_r1001",
-                  "author": { "login": "claude" },
+                  "author": {
+                    "login": "claude"
+                  },
                   "body": "`user` can be undefined here; this will throw.",
                   "createdAt": "2026-11-02T09:06:00Z",
-                  "originalCommit": { "oid": "c1" },
-                  "reactionGroups": [{ "content": "THUMBS_UP", "reactors": { "totalCount": 1 } }]
+                  "originalCommit": {
+                    "oid": "c1"
+                  },
+                  "reactionGroups": [
+                    {
+                      "content": "THUMBS_UP",
+                      "reactors": {
+                        "totalCount": 1
+                      }
+                    }
+                  ]
                 },
                 {
                   "databaseId": 1002,
                   "url": "https://github.com/acme/api/pull/10#discussion_r1002",
-                  "author": { "login": "alice" },
+                  "author": {
+                    "login": "alice"
+                  },
                   "body": "Good catch, fixed.",
                   "createdAt": "2026-11-02T10:00:00Z",
-                  "originalCommit": { "oid": "c1" },
+                  "originalCommit": {
+                    "oid": "c1"
+                  },
                   "reactionGroups": []
                 },
                 {
                   "databaseId": 1003,
                   "url": "https://github.com/acme/api/pull/10#discussion_r1003",
-                  "author": { "login": "claude" },
+                  "author": {
+                    "login": "claude"
+                  },
                   "body": "Thanks, the fix looks right.",
                   "createdAt": "2026-11-02T10:05:00Z",
-                  "originalCommit": { "oid": "c1" },
+                  "originalCommit": {
+                    "oid": "c1"
+                  },
                   "reactionGroups": []
                 }
               ]
@@ -73,10 +135,14 @@
                 {
                   "databaseId": 1004,
                   "url": "https://github.com/acme/api/pull/10#discussion_r1004",
-                  "author": { "login": "claude" },
+                  "author": {
+                    "login": "claude"
+                  },
                   "body": "Consider reading this from an environment variable.",
                   "createdAt": "2026-11-02T09:06:30Z",
-                  "originalCommit": { "oid": "c1" },
+                  "originalCommit": {
+                    "oid": "c1"
+                  },
                   "reactionGroups": null
                 }
               ]
@@ -92,10 +158,14 @@
                 {
                   "databaseId": 1005,
                   "url": "https://github.com/acme/api/pull/10#discussion_r1005",
-                  "author": { "login": "greptile-apps" },
+                  "author": {
+                    "login": "greptile-apps"
+                  },
                   "body": "Possible N+1 query.",
                   "createdAt": "2026-11-02T09:10:00Z",
-                  "originalCommit": { "oid": "c1" },
+                  "originalCommit": {
+                    "oid": "c1"
+                  },
                   "reactionGroups": []
                 }
               ]
@@ -111,13 +181,33 @@
                 {
                   "databaseId": 1006,
                   "url": "https://github.com/acme/api/pull/10#discussion_r1006",
-                  "author": { "login": "bob" },
+                  "author": {
+                    "login": "bob"
+                  },
                   "body": "Nit: rename this.",
                   "createdAt": "2026-11-02T11:00:00Z",
-                  "originalCommit": { "oid": "c1" },
+                  "originalCommit": {
+                    "oid": "c1"
+                  },
                   "reactionGroups": []
                 }
               ]
+            }
+          }
+        ]
+      },
+      "commits": {
+        "nodes": [
+          {
+            "commit": {
+              "oid": "c1",
+              "committedDate": "2026-11-02T08:55:00Z"
+            }
+          },
+          {
+            "commit": {
+              "oid": "h10",
+              "committedDate": "2026-11-02T12:00:00Z"
             }
           }
         ]
@@ -130,8 +220,23 @@
       "updatedAt": "2026-11-04T10:00:00Z",
       "mergedAt": "2026-11-04T10:00:00Z",
       "headRefOid": "h11",
-      "comments": { "nodes": [] },
-      "reviews": { "nodes": [] },
+      "comments": {
+        "nodes": [
+          {
+            "databaseId": 1150,
+            "url": "https://github.com/acme/api/pull/11#issuecomment-1150",
+            "author": {
+              "login": "github-actions"
+            },
+            "body": "**Claude finished @dev's task in 40s**\n\n---\n**Code Review** -- 1 issue(s) found\n\n1. [WARNING] **Correctness: timeout is never cleared**\n   `src/api.ts:12-15` -- the timer keeps the process alive.\n\nI also checked the retry logic and found nothing else.",
+            "createdAt": "2026-11-03T10:00:30Z",
+            "lastEditedAt": "2026-11-03T10:01:30Z"
+          }
+        ]
+      },
+      "reviews": {
+        "nodes": []
+      },
       "reviewThreads": {
         "nodes": [
           {
@@ -144,13 +249,33 @@
                 {
                   "databaseId": 1101,
                   "url": "https://github.com/acme/api/pull/11#discussion_r1101",
-                  "author": { "login": "greptile-apps" },
+                  "author": {
+                    "login": "greptile-apps"
+                  },
                   "body": "Missing error handling for the fetch call.",
                   "createdAt": "2026-11-03T10:20:00Z",
-                  "originalCommit": { "oid": "c2" },
+                  "originalCommit": {
+                    "oid": "c2"
+                  },
                   "reactionGroups": []
                 }
               ]
+            }
+          }
+        ]
+      },
+      "commits": {
+        "nodes": [
+          {
+            "commit": {
+              "oid": "c2",
+              "committedDate": "2026-11-03T09:50:00Z"
+            }
+          },
+          {
+            "commit": {
+              "oid": "h11",
+              "committedDate": "2026-11-04T09:00:00Z"
             }
           }
         ]
@@ -163,9 +288,25 @@
       "updatedAt": "2026-11-05T12:00:00Z",
       "mergedAt": "2026-11-05T12:00:00Z",
       "headRefOid": "h12",
-      "comments": { "nodes": [] },
-      "reviews": { "nodes": [] },
-      "reviewThreads": { "nodes": [] }
+      "comments": {
+        "nodes": []
+      },
+      "reviews": {
+        "nodes": []
+      },
+      "reviewThreads": {
+        "nodes": []
+      },
+      "commits": {
+        "nodes": [
+          {
+            "commit": {
+              "oid": "h12",
+              "committedDate": "2026-11-05T09:55:00Z"
+            }
+          }
+        ]
+      }
     }
   ]
 }

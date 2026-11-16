@@ -15,8 +15,18 @@ bots:
 # Lines either side of the commented line that count as "near" for the addressed rule.
 proximity: 3
 
+# Only count numbered/bulleted items in summary comments that carry a severity label
+# ([WARNING], [NOTE], a Greptile P1 badge, 🔴...). Set to false to count every item
+# that cites a file:line, at the cost of picking up non-issues.
+summaryRequiresSeverity: true
+
 # Words in a human reply that mean the finding was acted on (whole words, case-insensitive).
 addressedPhrases: [fixed, done, good catch, addressed]
+
+# Only count numbered/bulleted items in summary comments that carry a severity label
+# ([WARNING], [NOTE], a Greptile P1 badge, 🔴...). Set to false to count every item
+# that cites a file:line, at the cost of picking up non-issues.
+summaryRequiresSeverity: true
 
 # Words in a human reply that mean the finding was rejected.
 dismissedPhrases: [not an issue, false positive, intentional, by design, won't fix]

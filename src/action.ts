@@ -47,7 +47,12 @@ async function main(): Promise<void> {
       Object.fromEntries(
         ledger.byBot.map((s) => [
           s.bot,
-          { findings: s.findings, addressedRate: s.addressedRate, dismissedRate: s.dismissedRate },
+          {
+            findings: s.findings,
+            addressedRate: s.addressedRate,
+            dismissedRate: s.dismissedRate,
+            notAddressedRate: s.notAddressedRate,
+          },
         ]),
       ),
     ),

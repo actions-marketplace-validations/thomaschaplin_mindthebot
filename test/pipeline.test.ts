@@ -26,7 +26,24 @@ describe("toRecord", () => {
     const record = toRecord(fixture.repo, fixture.pullRequests[0]!, defaultConfig);
     expect(record.findings.map((f) => f.bot)).toEqual(["Claude", "Claude", "Greptile"]);
     expect(record.findings[0]!.replies.map((r) => r.author)).toEqual(["alice"]);
-    expect(record.summaries).toEqual([{ bot: "Claude", createdAt: "2026-11-02T09:05:00Z" }]);
+    expect(record.summaries).toEqual([{ bot: "Claude", createdAt: "2026-11-02T09:05:00Z", items: 0 }]);
+  });
+
+  it("turns located summary items into findings checked against the commit the reviewer saw", () => {
+    const record = toRecord(fixture.repo, fixture.pullRequests[1]!, defaultConfig);
+    const summary = record.findings.filter((f) => f.source === "summary");
+    expect(summary).toHaveLength(1);
+    expect(summary[0]).toMatchObject({
+      bot: "Claude",
+      severity: "warning",
+      path: "src/api.ts",
+      line: 12,
+      endLine: 15,
+      commitOid: "c2",
+      // The placeholder was posted at 10:00:30 and edited at 10:01:30.
+      createdAt: "2026-11-03T10:01:30Z",
+    });
+    expect(record.summaries).toEqual([{ bot: "Claude", createdAt: "2026-11-03T10:01:30Z", items: 1 }]);
   });
 });
 
@@ -35,11 +52,25 @@ describe("buildLedger", () => {
 
   it("counts outcomes per reviewer", () => {
     const claude = ledger.byBot.find((s) => s.bot === "Claude")!;
-    expect(claude).toMatchObject({ findings: 2, addressed: 1, dismissed: 1, ignored: 0, prsReviewed: 1 });
-    expect(claude.medianFirstCommentMinutes).toBe(5);
+    expect(claude).toMatchObject({
+      findings: 3,
+      inlineFindings: 2,
+      summaryFindings: 1,
+      addressed: 1,
+      dismissed: 1,
+      ignored: 0,
+      notAddressed: 1,
+      prsReviewed: 2,
+    });
+    // PR 10: 5 minutes. PR 11: 1.5 minutes (delivered when the placeholder was edited).
+    expect(claude.medianFirstCommentMinutes).toBe(1.5);
 
     const greptile = ledger.byBot.find((s) => s.bot === "Greptile")!;
     expect(greptile).toMatchObject({ findings: 2, addressed: 0, ignored: 2, prsReviewed: 2 });
+  });
+
+  it("breaks findings down by severity", () => {
+    expect(ledger.bySeverity).toEqual([{ bot: "Claude", severity: "warning", findings: 1, addressed: 0, addressedRate: 0 }]);
   });
 
   it("splits time to merge by whether PRs had AI findings", () => {

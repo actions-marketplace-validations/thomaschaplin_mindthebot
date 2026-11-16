@@ -1,6 +1,9 @@
 import type { Config } from "../config.ts";
 import { detectBot, isBotLogin } from "../detect/bots.ts";
+import { extractSeverity } from "../detect/severity.ts";
 import type { Finding, PullRequestRecord, SummaryComment } from "../types.ts";
+import { summaryFindings, type RaisedItem } from "./summary-findings.ts";
+import { extractSummaryItems } from "./summary-items.ts";
 import type { Cache } from "./cache.ts";
 import { splitRepo, type GitHubClient } from "./github.ts";
 
@@ -21,11 +24,14 @@ const QUERY = /* GraphQL */ `
           updatedAt
           mergedAt
           headRefOid
+          commits(last: 100) {
+            nodes { commit { oid committedDate } }
+          }
           comments(first: 50) {
-            nodes { author { login } body createdAt }
+            nodes { databaseId url author { login } body createdAt lastEditedAt }
           }
           reviews(first: 50) {
-            nodes { author { login } body createdAt }
+            nodes { databaseId url author { login } body createdAt lastEditedAt }
           }
           reviewThreads(first: 100) {
             nodes {
@@ -54,6 +60,14 @@ const QUERY = /* GraphQL */ `
 
 // Shapes of the GraphQL response, limited to the fields we ask for.
 interface Author { login: string }
+interface RawSummary {
+  databaseId: number;
+  url: string;
+  author: Author | null;
+  body: string;
+  createdAt: string;
+  lastEditedAt: string | null;
+}
 interface RawComment {
   databaseId: number;
   url: string;
@@ -77,8 +91,9 @@ export interface RawPullRequest {
   updatedAt: string;
   mergedAt: string;
   headRefOid: string;
-  comments: { nodes: { author: Author | null; body: string; createdAt: string }[] };
-  reviews: { nodes: { author: Author | null; body: string; createdAt: string }[] };
+  commits: { nodes: { commit: { oid: string; committedDate: string } }[] };
+  comments: { nodes: RawSummary[] };
+  reviews: { nodes: RawSummary[] };
   reviewThreads: { nodes: RawThread[] };
 }
 interface QueryResult {
@@ -106,12 +121,15 @@ export function toRecord(repo: string, pr: RawPullRequest, config: Config): Pull
       repo,
       pr: pr.number,
       bot,
+      source: "inline",
+      severity: extractSeverity(first.body),
       commentId: first.databaseId,
       url: first.url,
       createdAt: first.createdAt,
       body: first.body,
       path: thread.path,
       line: thread.originalLine,
+      endLine: null,
       commitOid: first.originalCommit?.oid ?? null,
       isResolved: thread.isResolved,
       isOutdated: thread.isOutdated,
@@ -119,15 +137,39 @@ export function toRecord(repo: string, pr: RawPullRequest, config: Config): Pull
       replies: rest
         .filter((c) => !isBotLogin(config.bots, c.author?.login))
         .map((c) => ({ author: c.author?.login ?? "ghost", body: c.body, createdAt: c.createdAt })),
+      repeats: 0,
     });
   }
 
   const summaries: SummaryComment[] = [];
+  const raised: RaisedItem[] = [];
   for (const c of [...pr.comments.nodes, ...pr.reviews.nodes]) {
     if (!c.body.trim()) continue; // Reviews that only carry inline comments have an empty body.
     const bot = detectBot(config.bots, c.author?.login, c.body);
-    if (bot) summaries.push({ bot, createdAt: c.createdAt });
+    if (!bot) continue;
+    // Some bots post a placeholder and edit it when the review finishes; the edit time is when it was delivered.
+    const deliveredAt = c.lastEditedAt ?? c.createdAt;
+    const items = extractSummaryItems(c.body).filter((i) => !config.summaryRequiresSeverity || i.severity !== null);
+    summaries.push({ bot, createdAt: deliveredAt, items: items.length });
+    for (const item of items) {
+      raised.push({ ...item, bot, commentId: c.databaseId, url: c.url, deliveredAt });
+    }
   }
+  const commits = pr.commits.nodes.map((n) => n.commit);
+  // Some bots repeat their inline comments in the summary; count each issue once.
+  const fromSummaries = summaryFindings(repo, pr.number, raised, commits, config).filter(
+    (s) =>
+      !findings.some(
+        (f) =>
+          f.bot === s.bot &&
+          f.path === s.path &&
+          f.line !== null &&
+          s.line !== null &&
+          f.line >= s.line - config.proximity &&
+          f.line <= (s.endLine ?? s.line) + config.proximity,
+      ),
+  );
+  findings.push(...fromSummaries);
 
   return {
     repo,
@@ -155,7 +197,7 @@ export async function fetchMergedPullRequests(
   let cursor: string | null = null;
 
   while (results.length < maxPrs) {
-    const page: QueryResult = await cache.wrap(["prs", owner, name, cursor, Math.floor(cutoff / 3_600_000)], () =>
+    const page: QueryResult = await cache.wrap(["prs-v2", owner, name, cursor, Math.floor(cutoff / 3_600_000)], () =>
       client.graphql<QueryResult>(QUERY, { owner, name, cursor }),
     );
     const { nodes, pageInfo } = page.repository.pullRequests;

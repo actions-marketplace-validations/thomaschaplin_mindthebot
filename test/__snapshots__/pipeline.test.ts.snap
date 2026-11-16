@@ -7,12 +7,20 @@ Merged PRs from the last **30d** in \`acme/api\`. 3 PRs analysed, 2 with AI revi
 
 ## By reviewer
 
-| Reviewer | PRs | Findings | Addressed | Dismissed | Ignored | Outdated | Per PR | First comment |
-|---|---|---|---|---|---|---|---|---|
-| Claude | 1 | 2 | 1 (50%) | 1 (50%) | 0 (0%) | 0 | 2.0 | 5m |
-| Greptile | 2 | 2 | 0 (0%) | 0 (0%) | 2 (100%) | 0 | 1.0 | 10m |
+| Reviewer | PRs | Findings | Addressed | Dismissed | Ignored | Not addressed | Outdated | Per PR | First comment |
+|---|---|---|---|---|---|---|---|---|---|
+| Claude | 2 | 3 (2 inline, 1 summary) | 1 (33%) | 1 (33%) | 0 (0%) | 1 (33%) | 0 | 1.5 | 2m |
+| Greptile | 2 | 2 | 0 (0%) | 0 (0%) | 2 (100%) | 0 (0%) | 0 | 1.0 | 10m |
 
-_**Addressed**: code near the comment changed afterwards, or a reply/👍 confirmed it. **Dismissed**: 👎, a dismissing reply, or resolved with no nearby change. **Ignored**: no response. **Outdated**: GitHub marked the thread outdated but no nearby change was found. **Per PR**: inline findings per PR the reviewer commented on. **First comment**: median time from PR opened._
+_**Addressed**: code near the comment changed afterwards, or a reply/👍 confirmed it. **Dismissed**: 👎, a dismissing reply, or resolved with no nearby change. **Ignored**: no response. **Not addressed**: a summary-comment item with no nearby change (summaries have no replies or resolution, so dismissed and ignored look the same). **Outdated**: GitHub marked the thread outdated but no nearby change was found. **Per PR**: findings per PR the reviewer commented on. **First comment**: median time from PR opened to the review being delivered._
+
+## By severity
+
+| Reviewer | Severity | Findings | Addressed |
+|---|---|---|---|
+| Claude | warning | 1 | 0 (0%) |
+
+_Severity as labelled by the reviewer itself. A low addressed rate on its highest severity is the number to look at first._
 
 ## Time to merge
 
