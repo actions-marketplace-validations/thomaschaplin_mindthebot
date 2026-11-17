@@ -20,7 +20,7 @@ export function resolveToken(): string {
 export function createClient(token: string): GitHubClient {
   return new ThrottledOctokit({
     auth: token,
-    userAgent: "review-ledger",
+    userAgent: "mindthebot",
     throttle: {
       onRateLimit: (retryAfter, options, _octokit, retryCount) => {
         process.stderr.write(`Rate limited on ${options.url}; retrying in ${retryAfter}s\n`);

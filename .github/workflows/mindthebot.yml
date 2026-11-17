@@ -1,5 +1,5 @@
 # Dogfooding: run the Action from this repo every Monday, and on demand.
-name: AI review ledger
+name: Mind the bot
 
 on:
   schedule:
@@ -17,11 +17,11 @@ permissions:
   contents: read
 
 jobs:
-  ledger:
+  mindthebot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - id: ledger
+      - id: mindthebot
         uses: ./
         with:
           repos: ${{ inputs.repos || 'anthropics/claude-code-action' }}
@@ -29,5 +29,5 @@ jobs:
           output: job-summary
       - uses: actions/upload-artifact@v5
         with:
-          name: review-ledger
-          path: ${{ steps.ledger.outputs.json-path }}
+          name: mindthebot
+          path: ${{ steps.mindthebot.outputs.json-path }}

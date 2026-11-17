@@ -17,7 +17,7 @@ function positiveInt(value: string): number {
 }
 
 const program = new Command()
-  .name("review-ledger")
+  .name("mindthebot")
   .description("Measure whether AI code review comments on GitHub pull requests get acted on.")
   .requiredOption("-r, --repo <owner/name>", "repo to analyse (repeat or comma-separate for several)", collect, [])
   .option("-s, --since <duration>", "how far back to look: 12h, 30d, 2w", "30d")
@@ -26,7 +26,7 @@ const program = new Command()
   .option("-f, --format <format>", "md or json", "md")
   .option("-o, --out <path>", "write the report to a file instead of stdout")
   .option("--datadog", "also send metrics to Datadog through DogStatsD")
-  .option("--no-cache", "don't read or write the .review-ledger/cache directory")
+  .option("--no-cache", "don't read or write the .mindthebot/cache directory")
   .action(async (opts) => {
     if (opts.format !== "md" && opts.format !== "json") throw new InvalidArgumentError("--format must be md or json.");
     opts.repo.forEach(splitRepo);
@@ -34,7 +34,7 @@ const program = new Command()
 
     const config = await loadConfig(opts.config);
     const client = createClient(resolveToken());
-    const cache = new Cache(".review-ledger/cache", opts.cache);
+    const cache = new Cache(".mindthebot/cache", opts.cache);
     const ledger = await run(client, cache, config, {
       repos: opts.repo,
       since: opts.since,
@@ -53,6 +53,6 @@ const program = new Command()
   });
 
 program.parseAsync().catch((error: unknown) => {
-  process.stderr.write(`review-ledger: ${error instanceof Error ? error.message : String(error)}\n`);
+  process.stderr.write(`mindthebot: ${error instanceof Error ? error.message : String(error)}\n`);
   process.exit(1);
 });

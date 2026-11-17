@@ -1,54 +1,63 @@
-# review-ledger
+# Mind the bot
 
-**Measure whether AI code review comments actually get acted on.**
+**Mind the gap between what your AI reviewer says and what your team does.**
 
-Teams are adding AI reviewers to every pull request: Claude, Greptile, Copilot, CodeRabbit, Cursor Bugbot. Few teams measure whether those comments lead to anything. Without data, people who find a bot noisy can't prove it, people who like it can't prove it catches real issues, and nobody knows whether a prompt or model change made it better or worse.
+Teams are adding AI reviewers to every pull request: Claude, Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex. Few teams check whether those comments lead to anything. Without data, people who find a bot noisy can't prove it, people who like it can't prove it catches real issues, and nobody knows whether a prompt or model change made it better or worse.
 
-`review-ledger` reads your merged PRs and scores every issue an AI reviewer raised, whether as an inline comment or as an item in a summary comment, as **addressed**, **dismissed** or **ignored**:
+`mindthebot` reads your merged PRs and scores every issue an AI reviewer raised, whether as an inline comment or as an item in a summary comment, as **addressed**, **dismissed** or **ignored**:
 
 ```bash
-npx review-ledger --repo owner/name --since 30d
+npx mindthebot --repo owner/name --since 30d
 ```
 
 It's read-only and needs no setup inside the repo.
 
-## Sample report
+## 🚇 Service status
 
-Eight well-known public repos, merged PRs from the last 30 days (up to 80 per repo), run on 16 Nov 2026:
+Every report opens with a status board, one line per reviewer:
 
-| Reviewer | Where | PRs | Findings | Addressed | Dismissed | Ignored |
-|---|---|---|---|---|---|---|
-| Copilot | VS Code, supabase, cline, … | 103 | 152 | 79% | 20% | 1% |
-| Greptile | cline, PostHog | 81 | 173 | 64% | 36% | 1% |
-| CodeRabbit | supabase, TanStack Query, cal.com, … | 179 | 206 | 57% | 20% | 19% |
-| Claude | anthropics/claude-code-action | 22 | 112 | 54% | 39% | 6% |
+| Reviewer | Status | |
+|---|---|---|
+| **Copilot** | 🟢 Good service | 79% of 152 findings addressed |
+| **Greptile** | 🟢 Good service | 64% of 173 findings addressed |
+| **CodeRabbit** | 🟡 Minor delays | 57% of 206 findings addressed |
+| **Claude** | 🟡 Minor delays | 54% of 112 findings addressed |
 
-By severity, Greptile's P1s were addressed 73% of the time against 59% for P2s, and CodeRabbit's "major" 60% against 58% for "minor". The full report also covers time to merge with and without AI findings, and the files where findings get dismissed most.
+🟢 **Good service**: at least 60% of findings addressed. 🟡 **Minor delays**: 40–59%. 🔴 **Severe delays**: under 40%. ⚪ With fewer than 5 findings, a reviewer gets no status: the sample is too small to mean much.
+
+This board comes from eight well-known public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex and claude-code-action): merged PRs from the last 30 days, up to 80 per repo, run on 16 Nov 2026. Below the board, the full report has:
+
+- every reviewer's addressed, dismissed and ignored counts, overall and per repo
+- a breakdown by the severity each reviewer gave. On this sample, Greptile's P1s were addressed 73% of the time against 59% for P2s, and CodeRabbit's "major" 60% against 58% for "minor".
+- time to merge for PRs with and without AI findings
+- the files where findings get dismissed most
 
 These numbers describe how each team responds to its reviewer, not which reviewer is "best": teams, codebases and settings differ.
 
-## How it decides
+## 🗺️ How it decides
 
-For each AI comment, it compares the commit the comment was made on with the PR's final commit:
+For each AI comment, it works out what changed in the code after the comment:
 
 - **Addressed:** code within 3 lines of the comment changed afterwards, or someone replied "fixed" / "good catch" (or gave a 👍) and the file changed.
-- **Dismissed:** a 👎, a reply like "intentional" or "false positive", or the thread was resolved with no nearby change.
+- **Dismissed:** a 👎, a reply like "intentional", "out of scope" or "leaving as is", or the thread was resolved with no nearby change.
 - **Ignored:** no reply, reaction, resolution or nearby change.
 - **Not addressed:** for issues listed in a summary comment, which have no replies or resolution: no nearby change.
 
-Summary comments are parsed for numbered items with a severity and a `file:line`, such as `claude-code-action`'s sticky "Code Review -- 2 issue(s) found" comment. Re-reviews that repeat an open issue are merged, and the issue is checked from the last review that repeated it. Results are also broken down by the severity each reviewer gave (P1/P2, warning/note, and so on).
+**Summary comments** are parsed for numbered items with a severity and a `file:line`, such as `claude-code-action`'s sticky "Code Review -- 2 issue(s) found" comment. A re-review that repeats an open issue is merged with the original, and the issue is checked from the last review that repeated it.
 
-Every finding in the JSON output includes the rule that decided it, so any number can be audited. These are heuristics, and they have limits: a nearby change isn't proof of cause, and fixes made in another PR look ignored. **[docs/heuristics.md](docs/heuristics.md)** explains the rules, the known limits, and how to check them against your own labels.
+**Branches that merge `main` back in** (common in big monorepos) are handled. Comparing against the final commit would pull in everyone else's changes, so the tool combines the PR's own commits instead.
 
-## Usage
+Every finding in the JSON output records the rule that decided it, so any number can be audited. These are heuristics, and they have limits: a nearby change isn't proof of cause, and a fix made in another PR looks ignored. **[docs/heuristics.md](docs/heuristics.md)** explains the rules, the known limits, and how to check them against your own labels.
+
+## 🎫 Usage
 
 ```bash
 # Token: GITHUB_TOKEN, or your GitHub CLI login (`gh auth login`). Read-only access is enough.
-npx review-ledger --repo owner/name                       # markdown, last 30 days
-npx review-ledger --repo owner/a,owner/b --since 2w       # several repos
-npx review-ledger --repo owner/name --format json -o ledger.json
-npx review-ledger --repo owner/name --config review-ledger.yml
-npx review-ledger --repo owner/name --datadog             # also send gauges to Datadog
+npx mindthebot --repo owner/name                       # markdown, last 30 days
+npx mindthebot --repo owner/a,owner/b --since 2w       # several repos
+npx mindthebot --repo owner/name --format json -o report.json
+npx mindthebot --repo owner/name --config mindthebot.yml
+npx mindthebot --repo owner/name --datadog             # also send gauges to Datadog
 ```
 
 | Option | Default | |
@@ -56,22 +65,22 @@ npx review-ledger --repo owner/name --datadog             # also send gauges to 
 | `--repo` | required | `owner/name`, repeatable or comma-separated |
 | `--since` | `30d` | `12h`, `30d`, `2w` |
 | `--max-prs` | `200` | per repo |
-| `--config` | built-in | YAML: bots, proximity, phrases. See [review-ledger.example.yml](review-ledger.example.yml) |
+| `--config` | built-in | YAML: reviewers, proximity, phrases. See [mindthebot.example.yml](mindthebot.example.yml) |
 | `--format` | `md` | `md` or `json` |
 | `--out` | stdout | write to a file |
-| `--datadog` | off | DogStatsD gauges such as `review_ledger.addressed_rate{bot,repo}`; needs `hot-shots` and a Datadog agent. No comment text is sent. |
-| `--no-cache` | cache on | API responses are cached in `.review-ledger/cache/` |
+| `--datadog` | off | DogStatsD gauges such as `mindthebot.addressed_rate{bot,repo}`; needs `hot-shots` and a Datadog agent. No comment text is sent. |
+| `--no-cache` | cache on | API responses are cached in `.mindthebot/cache/` |
 
-### Supported reviewers (built in)
+### Reviewers it knows about
 
-Claude (`claude[bot]`, or `github-actions[bot]` comments that mention Claude), Greptile, Copilot, CodeRabbit and Cursor Bugbot. You can add any other bot login in the config.
+Claude (`claude[bot]`, or `github-actions[bot]` comments that mention Claude), Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex and Gemini. You can add any other bot login in the config.
 
-## GitHub Action
+## 🔁 Weekly report (GitHub Action)
 
 Run it on a schedule and publish the report as a job summary, a living issue, or both:
 
 ```yaml
-name: AI review ledger
+name: Mind the bot
 on:
   schedule:
     - cron: "0 8 * * 1"   # Mondays
@@ -83,10 +92,10 @@ permissions:
   issues: write           # only needed for output: issue
 
 jobs:
-  ledger:
+  mindthebot:
     runs-on: ubuntu-latest
     steps:
-      - uses: thomaschaplin/review-ledger@v1
+      - uses: thomaschaplin/mindthebot@v1
         with:
           since: 7d
           output: job-summary,issue
@@ -99,33 +108,33 @@ jobs:
 | `max-prs` | `200` | per repo |
 | `config` | built-in | path to a YAML config |
 | `output` | `job-summary` | `job-summary`, `issue`, `none` (comma-separated) |
-| `issue-title` | `AI review ledger` | an open issue with this title and the `review-ledger` label is updated instead of creating a new one |
+| `issue-title` | `Mind the bot` | an open issue with this title and the `mindthebot` label is updated instead of creating a new one |
 | `issue-repo` | current repo | where to post the issue |
 | `github-token` | `${{ github.token }}` | use a PAT or GitHub App token to read other private repos |
 
-Outputs: `markdown-path`, `json-path`, `findings`, `by-bot` (JSON of per-reviewer rates, handy for gating or alerting in a later step) and `issue-url`. The full JSON ledger is written to `review-ledger.json`, so you can upload it with `actions/upload-artifact`.
+Outputs: `markdown-path`, `json-path`, `findings`, `by-bot` (JSON of per-reviewer rates, handy for alerting in a later step) and `issue-url`. The full JSON report is written to `mindthebot.json`, so you can upload it with `actions/upload-artifact`.
 
-This repo runs the Action on itself every week: see [.github/workflows/ledger.yml](.github/workflows/ledger.yml).
+This repo runs the Action on itself every week: see [.github/workflows/mindthebot.yml](.github/workflows/mindthebot.yml).
 
-## Development
+## 🛠️ Development
 
 ```bash
 npm install
-npm test            # vitest: classifier rules, diff parsing, a fixture-based pipeline test
+npm test            # vitest: classifier rules, diff parsing, summary parsing, a fixture-based pipeline test
 npm run typecheck
 npm run dev -- --repo owner/name   # run from source (Node 22.18+)
 npm run build       # bundle the CLI (dist/cli.js) and the Action (action/dist/index.js)
 npm run check-dist  # rebuild and fail if the committed Action bundle is out of date (CI runs this)
 ```
 
-## Roadmap
+## 🚧 Planned works
 
 - [x] GitHub Action: a weekly report as a job summary or an issue
+- [x] Score issues listed in summary comments, with a severity breakdown
 - [ ] A 30-finding hand-labelled agreement check, with the rate published here
-- [x] Score issues listed in summary comments, with severity breakdown
 - [ ] Group findings by category (bug, security, style)
 - [ ] Pair with an eval harness of planted bugs, to measure what reviewers *miss*, not just what they say
 
 ## Licence
 
-MIT
+MIT. *Mind the bot* is a nod to the London Underground's "Mind the gap". This project isn't affiliated with or endorsed by Transport for London.

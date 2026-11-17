@@ -16,7 +16,7 @@ export async function sendToDatadog(ledger: Ledger): Promise<void> {
   const client = new StatsD({
     host: process.env.DD_AGENT_HOST ?? "localhost",
     port: Number(process.env.DD_DOGSTATSD_PORT ?? 8125),
-    prefix: "review_ledger.",
+    prefix: "mindthebot.",
     errorHandler: (error) => process.stderr.write(`DogStatsD error: ${error.message}\n`),
   });
 

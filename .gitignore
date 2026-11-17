@@ -1,6 +1,7 @@
 node_modules/
 /dist/
-.review-ledger/
+.mindthebot/
 coverage/
 *.log
 .DS_Store
+.review-ledger/

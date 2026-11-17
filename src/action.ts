@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   const config = await loadConfig(core.getInput("config") || undefined);
   const client = createClient(token);
 
-  const ledger = await run(client, new Cache(".review-ledger/cache", false), config, {
+  const ledger = await run(client, new Cache(".mindthebot/cache", false), config, {
     repos,
     since,
     maxPrs,
@@ -34,8 +34,8 @@ async function main(): Promise<void> {
   });
   const markdown = renderMarkdown(ledger);
 
-  const markdownPath = core.getInput("markdown-path") || "review-ledger.md";
-  const jsonPath = core.getInput("json-path") || "review-ledger.json";
+  const markdownPath = core.getInput("markdown-path") || "mindthebot.md";
+  const jsonPath = core.getInput("json-path") || "mindthebot.json";
   await writeFile(markdownPath, markdown);
   await writeFile(jsonPath, `${JSON.stringify(ledger, null, 2)}\n`);
   core.setOutput("markdown-path", markdownPath);
@@ -65,7 +65,7 @@ async function main(): Promise<void> {
   if (outputs.includes("issue")) {
     const issueRepo = core.getInput("issue-repo") || process.env.GITHUB_REPOSITORY;
     if (!issueRepo) throw new Error("issue output needs issue-repo or GITHUB_REPOSITORY.");
-    const title = core.getInput("issue-title") || "AI review ledger";
+    const title = core.getInput("issue-title") || "Mind the bot";
     const issue = await upsertIssue(client, issueRepo, title, markdown);
     core.info(`${issue.created ? "Created" : "Updated"} ${issue.url}`);
     core.setOutput("issue-url", issue.url);

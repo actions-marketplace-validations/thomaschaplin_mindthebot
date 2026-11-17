@@ -1,9 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`buildLedger > renders a stable markdown report 1`] = `
-"# AI review ledger
+"# Mind the bot
+
+_Mind the gap between what your AI reviewer says and what your team does._
 
 Merged PRs from the last **30d** in \`acme/api\`. 3 PRs analysed, 2 with AI review comments. Generated 2026-11-16.
+
+## Service status
+
+| Reviewer | Status | |
+|---|---|---|
+| **Claude** | ⚪ Too few findings | 33% of 3 findings addressed |
+| **Greptile** | ⚪ Too few findings | 0% of 2 findings addressed |
+
+_🟢 Good service: at least 60% of findings addressed. 🟡 Minor delays: 40–59%. 🔴 Severe delays: under 40%. ⚪ Fewer than 5 findings: no status._
 
 ## By reviewer
 

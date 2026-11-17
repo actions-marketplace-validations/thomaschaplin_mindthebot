@@ -1,4 +1,4 @@
-# Copy to review-ledger.yml and pass with --config. Anything you leave out uses the defaults.
+# Copy to mindthebot.yml and pass with --config. Anything you leave out uses the defaults.
 
 # Which comment authors count as AI reviewers. Several matchers can share a name.
 bots:

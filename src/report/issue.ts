@@ -1,7 +1,7 @@
 import type { GitHubClient } from "../collect/github.ts";
 import { splitRepo } from "../collect/github.ts";
 
-export const ISSUE_LABEL = "review-ledger";
+export const ISSUE_LABEL = "mindthebot";
 
 /**
  * Create the report issue, or update it if an open one with the same label and

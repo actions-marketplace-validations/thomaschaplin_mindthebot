@@ -1,12 +1,12 @@
 {
-  "name": "review-ledger",
+  "name": "mindthebot",
   "version": "0.1.0",
-  "description": "Measure whether AI code review comments on GitHub pull requests actually get acted on.",
+  "description": "Mind the bot: measure whether AI code review comments on GitHub pull requests actually get acted on.",
   "license": "MIT",
   "author": "Thomas Chaplin",
   "type": "module",
   "bin": {
-    "review-ledger": "dist/cli.js"
+    "mindthebot": "dist/cli.js"
   },
   "files": [
     "dist"

@@ -98,3 +98,17 @@ describe("utils", () => {
     expect(percentile([], 50)).toBeNull();
   });
 });
+
+describe("serviceStatus", async () => {
+  const { serviceStatus } = await import("../src/report/markdown.ts");
+  const stats = (findings: number, addressedRate: number) =>
+    ({ findings, addressedRate }) as Parameters<typeof serviceStatus>[0];
+
+  it("maps the addressed rate to a Tube-style status", () => {
+    expect(serviceStatus(stats(10, 0.6)).label).toBe("Good service");
+    expect(serviceStatus(stats(10, 0.45)).label).toBe("Minor delays");
+    expect(serviceStatus(stats(10, 0.1)).label).toBe("Severe delays");
+    expect(serviceStatus(stats(0, 0)).label).toBe("No findings");
+    expect(serviceStatus(stats(3, 0)).label).toBe("Too few findings");
+  });
+});

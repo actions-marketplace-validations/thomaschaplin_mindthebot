@@ -1,5 +1,5 @@
-name: review-ledger
-description: Measure whether AI code review comments on your pull requests get addressed, dismissed or ignored.
+name: mindthebot
+description: Mind the bot. Measure whether AI code review comments on your pull requests get addressed, dismissed or ignored.
 author: Thomas Chaplin
 branding:
   icon: check-square
@@ -19,23 +19,23 @@ inputs:
     description: Maximum merged PRs per repo.
     default: "200"
   config:
-    description: Path to a review-ledger YAML config (bots, proximity, phrases).
+    description: Path to a mindthebot YAML config (bots, proximity, phrases).
     required: false
   output:
     description: Where to publish the report, comma-separated. job-summary, issue or none.
     default: job-summary
   issue-title:
-    description: Title of the report issue. An open issue with this title and the review-ledger label is updated instead of creating a new one.
-    default: AI review ledger
+    description: Title of the report issue. An open issue with this title and the mindthebot label is updated instead of creating a new one.
+    default: Mind the bot
   issue-repo:
     description: Repo to post the issue in. Defaults to the current repo.
     required: false
   markdown-path:
     description: Where to write the markdown report.
-    default: review-ledger.md
+    default: mindthebot.md
   json-path:
     description: Where to write the full JSON ledger, including every classified finding.
-    default: review-ledger.json
+    default: mindthebot.json
 
 outputs:
   markdown-path:

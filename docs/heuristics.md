@@ -1,11 +1,11 @@
-# How review-ledger classifies findings
+# How mindthebot classifies findings
 
 A **finding** is one issue raised by a configured AI reviewer. It comes from one of two places:
 
 - **Inline:** the first comment of a pull request review thread. Replies from other bots are ignored; replies from people are kept.
 - **Summary:** a numbered or bulleted item in a summary comment (a PR conversation comment or a review body) that points at a file and line. Some reviewers, such as `claude-code-action` set up for sticky comments, *only* report this way.
 
-For each finding, review-ledger works out which lines of the commented file changed after the comment:
+For each finding, mindthebot works out which lines of the commented file changed after the comment:
 
 - **Normally**, it compares the commit the comment was made on with the PR's final head (`GET /repos/{owner}/{repo}/compare/{base}...{head}`). Line numbers are exact, in the commented commit's coordinates.
 - **If the base branch was merged into the PR after the comment** (common in big repos such as VS Code and PostHog), that comparison would include everyone else's changes. It can also span thousands of commits and hit GitHub's 300-file limit, hiding the real fix. In that case, and whenever the comparison is truncated, it combines the diffs of the PR's own non-merge commits after the comment (up to 50). Line numbers are then approximate, because each commit's diff is relative to its own parent.

@@ -30111,7 +30111,7 @@ var ThrottledOctokit = Octokit.plugin(throttling, retry);
 function createClient(token) {
   return new ThrottledOctokit({
     auth: token,
-    userAgent: "review-ledger",
+    userAgent: "mindthebot",
     throttle: {
       onRateLimit: (retryAfter, options, _octokit, retryCount) => {
         process.stderr.write(`Rate limited on ${options.url}; retrying in ${retryAfter}s
@@ -49929,7 +49929,7 @@ async function loadConfig(path) {
 }
 
 // src/report/issue.ts
-var ISSUE_LABEL = "review-ledger";
+var ISSUE_LABEL = "mindthebot";
 async function upsertIssue(client, repo, title, body) {
   const { owner, name } = splitRepo(repo);
   const existing = await client.request("GET /repos/{owner}/{repo}/issues", {
@@ -50013,12 +50013,37 @@ function botTable(rows, withRepo) {
 function mergeRow(label, m) {
   return `| ${label} | ${m.prs} | ${num(m.medianHours)}h | ${num(m.p75Hours)}h |`;
 }
+var MIN_FINDINGS_FOR_STATUS = 5;
+function serviceStatus(s) {
+  if (s.findings === 0) return { icon: "\u26AA", label: "No findings" };
+  if (s.findings < MIN_FINDINGS_FOR_STATUS) return { icon: "\u26AA", label: "Too few findings" };
+  if (s.addressedRate >= 0.6) return { icon: "\u{1F7E2}", label: "Good service" };
+  if (s.addressedRate >= 0.4) return { icon: "\u{1F7E1}", label: "Minor delays" };
+  return { icon: "\u{1F534}", label: "Severe delays" };
+}
+function statusBoard(rows) {
+  const lines = ["| Reviewer | Status | |", "|---|---|---|"];
+  for (const s of rows) {
+    const { icon, label } = serviceStatus(s);
+    const detail = s.findings === 0 ? `commented on ${s.prsReviewed} PR${s.prsReviewed === 1 ? "" : "s"}, no file-and-line findings` : `${pct(s.addressedRate)} of ${s.findings} findings addressed`;
+    lines.push(`| **${s.bot}** | ${icon} ${label} | ${detail} |`);
+  }
+  return lines.join("\n");
+}
 function renderMarkdown(ledger) {
   const out = [];
-  out.push(`# AI review ledger`);
+  out.push(`# Mind the bot`);
+  out.push("_Mind the gap between what your AI reviewer says and what your team does._");
   out.push(
     `Merged PRs from the last **${ledger.since}** in ${ledger.repos.map((r) => `\`${r}\``).join(", ")}. ${ledger.prsAnalysed} PRs analysed, ${ledger.prsWithAi} with AI review comments. Generated ${ledger.generatedAt.slice(0, 10)}.`
   );
+  if (ledger.byBot.length > 0) {
+    out.push(`## Service status`);
+    out.push(statusBoard(ledger.byBot));
+    out.push(
+      `_\u{1F7E2} Good service: at least 60% of findings addressed. \u{1F7E1} Minor delays: 40\u201359%. \u{1F534} Severe delays: under 40%. \u26AA Fewer than ${MIN_FINDINGS_FOR_STATUS} findings: no status._`
+    );
+  }
   out.push(`## By reviewer`);
   if (ledger.byBot.length === 0) {
     out.push("_No comments from configured AI reviewers in this window._");
@@ -50710,15 +50735,15 @@ async function main() {
   const outputs = parseOutputs(getInput("output") || "job-summary");
   const config2 = await loadConfig(getInput("config") || void 0);
   const client = createClient(token);
-  const ledger = await run(client, new Cache(".review-ledger/cache", false), config2, {
+  const ledger = await run(client, new Cache(".mindthebot/cache", false), config2, {
     repos,
     since,
     maxPrs,
     log: (m) => info(m)
   });
   const markdown = renderMarkdown(ledger);
-  const markdownPath = getInput("markdown-path") || "review-ledger.md";
-  const jsonPath = getInput("json-path") || "review-ledger.json";
+  const markdownPath = getInput("markdown-path") || "mindthebot.md";
+  const jsonPath = getInput("json-path") || "mindthebot.json";
   await writeFile3(markdownPath, markdown);
   await writeFile3(jsonPath, `${JSON.stringify(ledger, null, 2)}
 `);
@@ -50747,7 +50772,7 @@ async function main() {
   if (outputs.includes("issue")) {
     const issueRepo = getInput("issue-repo") || process.env.GITHUB_REPOSITORY;
     if (!issueRepo) throw new Error("issue output needs issue-repo or GITHUB_REPOSITORY.");
-    const title = getInput("issue-title") || "AI review ledger";
+    const title = getInput("issue-title") || "Mind the bot";
     const issue3 = await upsertIssue(client, issueRepo, title, markdown);
     info(`${issue3.created ? "Created" : "Updated"} ${issue3.url}`);
     setOutput("issue-url", issue3.url);
