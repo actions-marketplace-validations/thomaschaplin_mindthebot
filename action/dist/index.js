@@ -79593,37 +79593,6 @@ async function loadConfig(path4) {
   return configSchema.parse({ ...defaultConfig, ...raw });
 }
 
-// src/report/issue.ts
-var ISSUE_LABEL = "mindthebot";
-async function upsertIssue(client, repo, title, body) {
-  const { owner, name } = splitRepo(repo);
-  const existing = await client.request("GET /repos/{owner}/{repo}/issues", {
-    owner,
-    repo: name,
-    state: "open",
-    labels: ISSUE_LABEL,
-    per_page: 100
-  });
-  const match = existing.data.find((issue3) => issue3.title === title && !issue3.pull_request);
-  if (match) {
-    const res2 = await client.request("PATCH /repos/{owner}/{repo}/issues/{issue_number}", {
-      owner,
-      repo: name,
-      issue_number: match.number,
-      body
-    });
-    return { url: res2.data.html_url, created: false };
-  }
-  const res = await client.request("POST /repos/{owner}/{repo}/issues", {
-    owner,
-    repo: name,
-    title,
-    body,
-    labels: [ISSUE_LABEL]
-  });
-  return { url: res.data.html_url, created: true };
-}
-
 // src/util/duration.ts
 var UNITS = {
   h: 60 * 60 * 1e3,
@@ -79803,9 +79772,6 @@ function escapeInline(text) {
   }).join("`");
 }
 var HTML_TAG = /<\/?(?:a|img|picture|source|sub|sup|br|hr|p|div|span|b|i|em|strong|code|kbd|pre|blockquote|table|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|summary)\b[^>]*>/gi;
-function snippet(body, max = 110) {
-  return escapeInline(gist(body, max));
-}
 function gist(body, max) {
   const lines = body.replace(/<!--[\s\S]*?-->/g, "").replace(/```[\s\S]*?```/g, "").replace(/<details>[\s\S]*?<\/details>/gi, "").replace(HTML_TAG, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).filter((l) => /[a-z]{3}/i.test(l));
   const title = lines.slice(0, 4).map((l) => /^\*\*([^*]+)\*\*(?!\s*·)/.exec(l)?.[1]?.trim()).find((t) => t && /[a-z]{3}/i.test(t));
@@ -79916,19 +79882,10 @@ function ignoredFilesTable(files, multiRepo) {
   });
   return lines.join("\n");
 }
-function ignoredFindingsList(files, multiRepo, full) {
+function ignoredFindingsList(files, multiRepo) {
   return files.map((file2) => {
     const repo = multiRepo ? ` <sub>${file2.repo}</sub>` : "";
     const heading = `[\`${escapeInline(file2.path)}\`](${fileUrl(file2.repo, file2.path)})${repo}`;
-    if (!full) {
-      const items2 = file2.items.map((f) => {
-        const severity = f.severity ? ` \xB7 ${severityLabel(f.severity)}` : "";
-        return `- [**${lineText(f)}**](${lineUrl(f)}) \xB7 ${f.bot}${severity} \xB7 [#${f.pr}](${f.url})<br>${snippet(f.body)}`;
-      });
-      return `${heading}
-
-${items2.join("\n")}`;
-    }
     const items = file2.items.map((f) => {
       const severity = f.severity ? ` \xB7 ${severityLabel(f.severity)}` : "";
       return [
@@ -80007,7 +79964,7 @@ var HOW_IT_WORKS = [
   "",
   "These are heuristics: a nearby change isn't proof the comment caused it, and a fix made in a later PR looks ignored. The JSON report records the rule behind every outcome."
 ].join("\n");
-function renderMarkdown(ledger, { fullComments = true } = {}) {
+function renderMarkdown(ledger) {
   const out = [];
   const multiRepo = ledger.repos.length > 1;
   const repoList = ledger.repos.map((r) => `[${r}](https://github.com/${r})`).join(" \xB7 ");
@@ -80037,7 +79994,7 @@ function renderMarkdown(ledger, { fullComments = true } = {}) {
       "<sub>Findings nobody replied to, reacted to or changed code for. Line links open the code the reviewer saw; PR links open the comment.</sub>"
     );
     out.push(ignoredFilesTable(ledger.topIgnoredFiles, multiRepo));
-    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo, fullComments)));
+    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo)));
   }
   if (ledger.bySeverity.length > 0) {
     out.push("### By severity");
@@ -80612,7 +80569,7 @@ async function run(client, cache, config2, options) {
 }
 
 // src/action-inputs.ts
-var OUTPUTS = ["job-summary", "issue", "none"];
+var OUTPUTS = ["job-summary", "none"];
 function listInput(value) {
   return value.split(/[,\n]/).map((v) => v.trim()).filter(Boolean);
 }
@@ -80627,7 +80584,6 @@ function parseOutputs(value) {
 }
 
 // src/action.ts
-var ISSUE_BODY_LIMIT = 65e3;
 async function main() {
   const token = getInput("github-token", { required: true });
   setSecret(token);
@@ -80695,15 +80651,6 @@ async function main() {
   );
   if (outputs.includes("job-summary")) {
     await summary.addRaw(markdown).write();
-  }
-  if (outputs.includes("issue")) {
-    const issueRepo = getInput("issue-repo") || process.env.GITHUB_REPOSITORY;
-    if (!issueRepo) throw new Error("issue output needs issue-repo or GITHUB_REPOSITORY.");
-    const title = getInput("issue-title") || "Mind the bot";
-    const body = markdown.length <= ISSUE_BODY_LIMIT ? markdown : renderMarkdown(ledger, { fullComments: false });
-    const issue3 = await upsertIssue(client, issueRepo, title, body.slice(0, ISSUE_BODY_LIMIT));
-    info(`${issue3.created ? "Created" : "Updated"} ${issue3.url}`);
-    setOutput("issue-url", issue3.url);
   }
 }
 main().catch((error63) => {

@@ -234,18 +234,11 @@ function ignoredFilesTable(files: IgnoredFile[], multiRepo: boolean): string {
   return lines.join("\n");
 }
 
-function ignoredFindingsList(files: IgnoredFile[], multiRepo: boolean, full: boolean): string {
+function ignoredFindingsList(files: IgnoredFile[], multiRepo: boolean): string {
   return files
     .map((file) => {
       const repo = multiRepo ? ` <sub>${file.repo}</sub>` : "";
       const heading = `[\`${escapeInline(file.path)}\`](${fileUrl(file.repo, file.path)})${repo}`;
-      if (!full) {
-        const items = file.items.map((f) => {
-          const severity = f.severity ? ` · ${severityLabel(f.severity)}` : "";
-          return `- [**${lineText(f)}**](${lineUrl(f)}) · ${f.bot}${severity} · [#${f.pr}](${f.url})<br>${snippet(f.body)}`;
-        });
-        return `${heading}\n\n${items.join("\n")}`;
-      }
       const items = file.items.map((f) => {
         const severity = f.severity ? ` · ${severityLabel(f.severity)}` : "";
         return [
@@ -341,12 +334,7 @@ const HOW_IT_WORKS = [
 
 // ── Report ──────────────────────────────────────────────────────────────────
 
-export interface RenderOptions {
-  /** Include each ignored finding's full comment. Off for GitHub issues, whose bodies are capped at 65,536 characters. */
-  fullComments?: boolean;
-}
-
-export function renderMarkdown(ledger: Ledger, { fullComments = true }: RenderOptions = {}): string {
+export function renderMarkdown(ledger: Ledger): string {
   const out: string[] = [];
   const multiRepo = ledger.repos.length > 1;
   const repoList = ledger.repos.map((r) => `[${r}](https://github.com/${r})`).join(" · ");
@@ -381,7 +369,7 @@ export function renderMarkdown(ledger: Ledger, { fullComments = true }: RenderOp
       "<sub>Findings nobody replied to, reacted to or changed code for. Line links open the code the reviewer saw; PR links open the comment.</sub>",
     );
     out.push(ignoredFilesTable(ledger.topIgnoredFiles, multiRepo));
-    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo, fullComments)));
+    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo)));
   }
 
   if (ledger.bySeverity.length > 0) {

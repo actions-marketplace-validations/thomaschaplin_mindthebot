@@ -7,13 +7,10 @@ import { ClaudeReplyJudge } from "./ai/reply-intent.ts";
 import { Cache } from "./collect/cache.ts";
 import { createClient, splitRepo } from "./collect/github.ts";
 import { loadConfig } from "./config.ts";
-import { upsertIssue } from "./report/issue.ts";
 import { renderMarkdown } from "./report/markdown.ts";
 import { run } from "./run.ts";
 import { parseDuration } from "./util/duration.ts";
 import { listInput, parseOutputs } from "./action-inputs.ts";
-
-const ISSUE_BODY_LIMIT = 65_000;
 
 async function main(): Promise<void> {
   const token = core.getInput("github-token", { required: true });
@@ -87,17 +84,6 @@ async function main(): Promise<void> {
 
   if (outputs.includes("job-summary")) {
     await core.summary.addRaw(markdown).write();
-  }
-
-  if (outputs.includes("issue")) {
-    const issueRepo = core.getInput("issue-repo") || process.env.GITHUB_REPOSITORY;
-    if (!issueRepo) throw new Error("issue output needs issue-repo or GITHUB_REPOSITORY.");
-    const title = core.getInput("issue-title") || "Mind the bot";
-    // Issue bodies are capped at 65,536 characters, so drop the full comments if needed.
-    const body = markdown.length <= ISSUE_BODY_LIMIT ? markdown : renderMarkdown(ledger, { fullComments: false });
-    const issue = await upsertIssue(client, issueRepo, title, body.slice(0, ISSUE_BODY_LIMIT));
-    core.info(`${issue.created ? "Created" : "Updated"} ${issue.url}`);
-    core.setOutput("issue-url", issue.url);
   }
 }
 

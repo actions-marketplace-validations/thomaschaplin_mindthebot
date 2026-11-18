@@ -1,6 +1,6 @@
 /** Input parsing for the GitHub Action, kept separate from the entry point so it can be tested. */
 
-export const OUTPUTS = ["job-summary", "issue", "none"] as const;
+export const OUTPUTS = ["job-summary", "none"] as const;
 export type OutputTarget = (typeof OUTPUTS)[number];
 
 /** Split a comma- or newline-separated input into trimmed, non-empty values. */
