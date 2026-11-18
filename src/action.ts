@@ -1,5 +1,9 @@
 import { writeFile } from "node:fs/promises";
 import * as core from "@actions/core";
+import Anthropic from "@anthropic-ai/sdk";
+import { ClaudeFixJudge } from "./ai/fix-judge.ts";
+import { DEFAULT_AI_MODEL, resolveModel } from "./ai/claude.ts";
+import { ClaudeReplyJudge } from "./ai/reply-intent.ts";
 import { Cache } from "./collect/cache.ts";
 import { createClient, splitRepo } from "./collect/github.ts";
 import { loadConfig } from "./config.ts";
@@ -28,10 +32,29 @@ async function main(): Promise<void> {
   const config = await loadConfig(core.getInput("config") || undefined);
   const client = createClient(token);
 
-  const ledger = await run(client, new Cache(".mindthebot/cache", false), config, {
+  const cache = new Cache(".mindthebot/cache", false);
+  let replyJudge: ClaudeReplyJudge | undefined;
+  let fixJudge: ClaudeFixJudge | undefined;
+  if (core.getBooleanInput("ai")) {
+    const apiKey = core.getInput("anthropic-api-key");
+    if (!apiKey) throw new Error("ai: true needs the anthropic-api-key input.");
+    core.setSecret(apiKey);
+    const ai = {
+      cache,
+      model: resolveModel(core.getInput("ai-model") || DEFAULT_AI_MODEL),
+      client: new Anthropic({ apiKey }),
+      warn: (m: string) => core.warning(m),
+    };
+    core.info(`AI: using ${ai.model}`);
+    replyJudge = new ClaudeReplyJudge(ai);
+    fixJudge = new ClaudeFixJudge(ai);
+  }
+  const ledger = await run(client, cache, config, {
     repos,
     since,
     maxPrs,
+    replyJudge,
+    fixJudge,
     log: (m) => core.info(m),
   });
   const markdown = renderMarkdown(ledger);
