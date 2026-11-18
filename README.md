@@ -70,19 +70,6 @@ npx mindthebot --repo owner/name --config mindthebot.yml
 | `--format` | `md` | `md` or `json` |
 | `--out` | stdout | write to a file |
 | `--no-cache` | cache on | API responses are cached in `.mindthebot/cache/` |
-| `--ai` | off | Use Claude to read what human replies mean (fixed, will fix, disagrees, acknowledged, question) instead of matching phrases, and to check whether each nearby change actually fixed the finding. Needs `ANTHROPIC_API_KEY`. Sends the comment, human replies and nearby diff hunks, nothing else. See [docs/heuristics.md](docs/heuristics.md#with---ai). |
-| `--ai-model` | `sonnet` | Claude model for `--ai`: `haiku`, `sonnet`, `opus` or `fable` (the newest of each), or a full model ID. See [Choosing a model](#choosing-a-model-for---ai) |
-
-### Choosing a model for `--ai`
-
-| `--ai-model` | Model | Price per million tokens (in / out) | Use it for |
-|---|---|---|---|
-| `haiku` | Claude Haiku 5.5 | $0.10 / $0.50 | cheap iteration while tuning; its labels sometimes contradict its own reasoning |
-| `sonnet` (default) | Claude Sonnet 5.5 | $2 / $10 | regular runs: consistent labels, and says "unclear" rather than guessing |
-| `opus` | Claude Opus 5.5 | $4 / $20 | the most careful fix verdicts at a moderate price |
-| `fable` | Claude Fable 5.2 | $8 / $40 | the hardest code, when cost matters least |
-
-Reading replies is easy for every model; judging whether a diff fixed a comment is where bigger models earn their price. Answers are cached per model, so switching models re-asks every question once.
 
 ### Reviewers it knows about
 
@@ -120,9 +107,6 @@ jobs:
 | `config` | built-in | path to a YAML config |
 | `output` | `job-summary` | `job-summary` or `none` |
 | `github-token` | `${{ github.token }}` | use a PAT or GitHub App token to read other private repos |
-| `ai` | `false` | read replies and check fixes with Claude, as `--ai` |
-| `anthropic-api-key` | – | required with `ai: true`; pass it from a secret |
-| `ai-model` | `sonnet` | Claude model for `ai`, as `--ai-model` |
 
 Outputs: `markdown-path`, `json-path`, `findings`, `by-bot` (JSON of per-reviewer rates, handy for alerting in a later step). The full JSON report is written to `mindthebot.json`, so you can upload it with `actions/upload-artifact`.
 
@@ -144,8 +128,6 @@ npm run check-dist  # rebuild and fail if the committed Action bundle is out of 
 - [x] GitHub Action: a weekly report as a job summary
 - [x] Score issues listed in summary comments, with a severity breakdown
 - [ ] A 30-finding hand-labelled agreement check, with the rate published here
-- [x] Read reply intent with Claude (`--ai`)
-- [x] Judge whether a nearby change actually fixed the comment, with Claude (`--ai`)
 - [ ] Group findings by category (bug, security, style)
 - [ ] Pair with an eval harness of planted bugs, to measure what reviewers *miss*, not just what they say
 
