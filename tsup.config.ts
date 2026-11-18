@@ -10,8 +10,6 @@ export default defineConfig([
     platform: "node",
     clean: true,
     banner: { js: "#!/usr/bin/env node" },
-    // Optional: only loaded when --datadog is used.
-    external: ["hot-shots"],
   },
   {
     // The GitHub Action. Actions don't run `npm install`, so bundle everything into one file.

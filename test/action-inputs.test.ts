@@ -10,10 +10,10 @@ describe("listInput", () => {
 
 describe("parseOutputs", () => {
   it("accepts known targets", () => {
-    expect(parseOutputs("job-summary,issue")).toEqual(["job-summary", "issue"]);
+    expect(parseOutputs("job-summary, none")).toEqual(["job-summary", "none"]);
   });
 
   it("rejects unknown targets", () => {
-    expect(() => parseOutputs("slack")).toThrow(/Unknown output "slack"/);
+    expect(() => parseOutputs("issue")).toThrow(/Unknown output "issue"/);
   });
 });

@@ -6,7 +6,6 @@ import { ClaudeReplyJudge } from "./ai/reply-intent.ts";
 import { Cache } from "./collect/cache.ts";
 import { createClient, resolveToken, splitRepo } from "./collect/github.ts";
 import { loadConfig } from "./config.ts";
-import { sendToDatadog } from "./report/datadog.ts";
 import { renderMarkdown } from "./report/markdown.ts";
 import { run } from "./run.ts";
 import { parseDuration } from "./util/duration.ts";
@@ -28,7 +27,6 @@ const program = new Command()
   .option("-c, --config <path>", "YAML config file (bots, proximity, phrases)")
   .option("-f, --format <format>", "md or json", "md")
   .option("-o, --out <path>", "write the report to a file instead of stdout")
-  .option("--datadog", "also send metrics to Datadog through DogStatsD")
   .option("--no-cache", "don't read or write the .mindthebot/cache directory")
   .option("--ai", "use Claude to read what human replies mean and to check whether nearby changes fixed each finding (needs ANTHROPIC_API_KEY; sends comment text, replies and diff hunks to Anthropic)")
   .option(
@@ -75,7 +73,6 @@ const program = new Command()
     } else {
       process.stdout.write(output);
     }
-    if (opts.datadog) await sendToDatadog(ledger);
   });
 
 program.parseAsync().catch((error: unknown) => {
