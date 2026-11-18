@@ -65,6 +65,11 @@ const HTML_TAG =
   /<\/?(?:a|img|picture|source|sub|sup|br|hr|p|div|span|b|i|em|strong|code|kbd|pre|blockquote|table|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|summary)\b[^>]*>/gi;
 
 export function snippet(body: string, max = 110): string {
+  return escapeInline(gist(body, max));
+}
+
+/** The gist as plain text, unescaped. */
+function gist(body: string, max: number): string {
   const lines = body
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/```[\s\S]*?```/g, "")
@@ -86,8 +91,42 @@ export function snippet(body: string, max = 110): string {
     .replace(/^(?:\([^)]{1,25}\)\s*|[a-z][a-z ,()-]{0,30}:\s*)+/, "")
     .trim();
   const tidy = line.charAt(0).toUpperCase() + line.slice(1);
-  const short = tidy.length > max ? `${tidy.slice(0, max - 1).trimEnd()}…` : tidy;
-  return escapeInline(short);
+  return tidy.length > max ? `${tidy.slice(0, max - 1).trimEnd()}…` : tidy;
+}
+
+/** The gist for an HTML <summary>, where markdown isn't rendered: escaped, with `code` as <code>. */
+function summaryGist(body: string): string {
+  const html = gist(body, 100).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return html.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/`/g, "");
+}
+
+/** Longest comment shown in full; anything longer is cut at a paragraph and links to the rest. */
+export const MAX_COMMENT_CHARS = 4000;
+
+/**
+ * A reviewer's comment, made safe to embed in the report: no hidden HTML
+ * comments, cut to MAX_COMMENT_CHARS at a paragraph break, with any code fence
+ * or <details> block the cut left open closed again, and quoted.
+ */
+export function fullComment(body: string, url: string): string {
+  let text = body.replace(/<!--[\s\S]*?-->/g, "").replace(/\r\n/g, "\n").trim();
+  let cut = false;
+  if (text.length > MAX_COMMENT_CHARS) {
+    const at = text.lastIndexOf("\n\n", MAX_COMMENT_CHARS);
+    text = text.slice(0, at > MAX_COMMENT_CHARS / 2 ? at : MAX_COMMENT_CHARS).trimEnd();
+    cut = true;
+  }
+  if ((text.match(/^ {0,3}(```|~~~)/gm) ?? []).length % 2 === 1) text += "\n```";
+  const unclosed = (text.match(/<details\b/gi) ?? []).length - (text.match(/<\/details>/gi) ?? []).length;
+  if (unclosed > 0) text += "\n</details>".repeat(unclosed);
+  // A stray closing tag would close the report's own <details>.
+  if (unclosed < 0) text = text.replace(/<\/details>/gi, (m, offset: number, all: string) =>
+    (all.slice(0, offset).match(/<details\b/gi) ?? []).length > (all.slice(0, offset).match(/<\/details>/gi) ?? []).length ? m : "");
+  if (cut) text += `\n\n*…cut here. [Read the full comment on GitHub](${url}).*`;
+  return text
+    .split("\n")
+    .map((l) => (l ? `> ${l}` : ">"))
+    .join("\n");
 }
 
 // ── Links ───────────────────────────────────────────────────────────────────
@@ -194,15 +233,32 @@ function ignoredFilesTable(files: IgnoredFile[], multiRepo: boolean): string {
   return lines.join("\n");
 }
 
-function ignoredFindingsList(files: IgnoredFile[], multiRepo: boolean): string {
+function ignoredFindingsList(files: IgnoredFile[], multiRepo: boolean, full: boolean): string {
   return files
     .map((file) => {
+      const repo = multiRepo ? ` <sub>${file.repo}</sub>` : "";
+      const heading = `[\`${escapeInline(file.path)}\`](${fileUrl(file.repo, file.path)})${repo}`;
+      if (!full) {
+        const items = file.items.map((f) => {
+          const severity = f.severity ? ` · ${severityLabel(f.severity)}` : "";
+          return `- [**${lineText(f)}**](${lineUrl(f)}) · ${f.bot}${severity} · [#${f.pr}](${f.url})<br>${snippet(f.body)}`;
+        });
+        return `${heading}\n\n${items.join("\n")}`;
+      }
       const items = file.items.map((f) => {
         const severity = f.severity ? ` · ${severityLabel(f.severity)}` : "";
-        return `- [**${lineText(f)}**](${lineUrl(f)}) · ${f.bot}${severity} · [#${f.pr}](${f.url})<br>${snippet(f.body)}`;
+        return [
+          "<details>",
+          `<summary><b>${lineText(f)}</b> · ${f.bot}${severity} · #${f.pr} · ${summaryGist(f.body)}</summary>`,
+          "",
+          `[Code at ${lineText(f)}](${lineUrl(f)}) · [Comment on #${f.pr}](${f.url})`,
+          "",
+          fullComment(f.body, f.url),
+          "",
+          "</details>",
+        ].join("\n");
       });
-      const repo = multiRepo ? ` <sub>${file.repo}</sub>` : "";
-      return `[\`${escapeInline(file.path)}\`](${fileUrl(file.repo, file.path)})${repo}\n\n${items.join("\n")}`;
+      return `${heading}\n\n${items.join("\n\n")}`;
     })
     .join("\n\n");
 }
@@ -274,7 +330,12 @@ const HOW_IT_WORKS = [
 
 // ── Report ──────────────────────────────────────────────────────────────────
 
-export function renderMarkdown(ledger: Ledger): string {
+export interface RenderOptions {
+  /** Include each ignored finding's full comment. Off for GitHub issues, whose bodies are capped at 65,536 characters. */
+  fullComments?: boolean;
+}
+
+export function renderMarkdown(ledger: Ledger, { fullComments = true }: RenderOptions = {}): string {
   const out: string[] = [];
   const multiRepo = ledger.repos.length > 1;
   const repoList = ledger.repos.map((r) => `[${r}](https://github.com/${r})`).join(" · ");
@@ -300,7 +361,7 @@ export function renderMarkdown(ledger: Ledger): string {
       "<sub>Findings nobody replied to, reacted to or changed code for. Line links open the code the reviewer saw; PR links open the comment.</sub>",
     );
     out.push(ignoredFilesTable(ledger.topIgnoredFiles, multiRepo));
-    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo)));
+    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo, fullComments)));
   }
 
   if (ledger.bySeverity.length > 0) {

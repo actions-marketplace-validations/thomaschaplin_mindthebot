@@ -32,12 +32,35 @@ How often your team acts on what its AI code reviewers say.<br><sub>[acme/api](h
 
 [\`src/api.ts\`](https://github.com/acme/api/blob/HEAD/src/api.ts)
 
-- [**L7**](https://github.com/acme/api/blob/c2/src/api.ts#L7) · Greptile · [#11](https://github.com/acme/api/pull/11#discussion_r1101)<br>Missing error handling for the fetch call.
-- [**L12–15**](https://github.com/acme/api/blob/c2/src/api.ts#L12-L15) · Claude · Warning · [#11](https://github.com/acme/api/pull/11#issuecomment-1150)<br>Correctness: timeout is never cleared
+<details>
+<summary><b>L7</b> · Greptile · #11 · Missing error handling for the fetch call.</summary>
+
+[Code at L7](https://github.com/acme/api/blob/c2/src/api.ts#L7) · [Comment on #11](https://github.com/acme/api/pull/11#discussion_r1101)
+
+> Missing error handling for the fetch call.
+
+</details>
+
+<details>
+<summary><b>L12–15</b> · Claude · Warning · #11 · Correctness: timeout is never cleared</summary>
+
+[Code at L12–15](https://github.com/acme/api/blob/c2/src/api.ts#L12-L15) · [Comment on #11](https://github.com/acme/api/pull/11#issuecomment-1150)
+
+> 1. [WARNING] **Correctness: timeout is never cleared**
+>    \`src/api.ts:12-15\` -- the timer keeps the process alive.
+
+</details>
 
 [\`src/db.ts\`](https://github.com/acme/api/blob/HEAD/src/db.ts)
 
-- [**L10**](https://github.com/acme/api/blob/c1/src/db.ts#L10) · Greptile · [#10](https://github.com/acme/api/pull/10#discussion_r1005)<br>Possible N+1 query.
+<details>
+<summary><b>L10</b> · Greptile · #10 · Possible N+1 query.</summary>
+
+[Code at L10](https://github.com/acme/api/blob/c1/src/db.ts#L10) · [Comment on #10](https://github.com/acme/api/pull/10#discussion_r1005)
+
+> Possible N+1 query.
+
+</details>
 
 </details>
 

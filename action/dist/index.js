@@ -50132,12 +50132,36 @@ function escapeInline(text) {
 }
 var HTML_TAG = /<\/?(?:a|img|picture|source|sub|sup|br|hr|p|div|span|b|i|em|strong|code|kbd|pre|blockquote|table|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|summary)\b[^>]*>/gi;
 function snippet(body, max = 110) {
+  return escapeInline(gist(body, max));
+}
+function gist(body, max) {
   const lines = body.replace(/<!--[\s\S]*?-->/g, "").replace(/```[\s\S]*?```/g, "").replace(/<details>[\s\S]*?<\/details>/gi, "").replace(HTML_TAG, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).filter((l) => /[a-z]{3}/i.test(l));
   const title = lines.slice(0, 4).map((l) => /^\*\*([^*]+)\*\*(?!\s*·)/.exec(l)?.[1]?.trim()).find((t) => t && /[a-z]{3}/i.test(t));
   const line = (title ?? lines[0] ?? "").replace(/^[\s>#*\-+\d.)]+/, "").replace(/^(?:[🔴🟠🟡🟢🟣🔵⚪⚠❗]|\uFE0F|\s)+/u, "").replace(/^\[[A-Z]+\]:?\s*/, "").replace(/\*\*|__/g, "").replace(/^(?:\([^)]{1,25}\)\s*|[a-z][a-z ,()-]{0,30}:\s*)+/, "").trim();
   const tidy = line.charAt(0).toUpperCase() + line.slice(1);
-  const short = tidy.length > max ? `${tidy.slice(0, max - 1).trimEnd()}\u2026` : tidy;
-  return escapeInline(short);
+  return tidy.length > max ? `${tidy.slice(0, max - 1).trimEnd()}\u2026` : tidy;
+}
+function summaryGist(body) {
+  const html = gist(body, 100).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return html.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/`/g, "");
+}
+var MAX_COMMENT_CHARS = 4e3;
+function fullComment(body, url2) {
+  let text = body.replace(/<!--[\s\S]*?-->/g, "").replace(/\r\n/g, "\n").trim();
+  let cut = false;
+  if (text.length > MAX_COMMENT_CHARS) {
+    const at = text.lastIndexOf("\n\n", MAX_COMMENT_CHARS);
+    text = text.slice(0, at > MAX_COMMENT_CHARS / 2 ? at : MAX_COMMENT_CHARS).trimEnd();
+    cut = true;
+  }
+  if ((text.match(/^ {0,3}(```|~~~)/gm) ?? []).length % 2 === 1) text += "\n```";
+  const unclosed = (text.match(/<details\b/gi) ?? []).length - (text.match(/<\/details>/gi) ?? []).length;
+  if (unclosed > 0) text += "\n</details>".repeat(unclosed);
+  if (unclosed < 0) text = text.replace(/<\/details>/gi, (m, offset, all) => (all.slice(0, offset).match(/<details\b/gi) ?? []).length > (all.slice(0, offset).match(/<\/details>/gi) ?? []).length ? m : "");
+  if (cut) text += `
+
+*\u2026cut here. [Read the full comment on GitHub](${url2}).*`;
+  return text.split("\n").map((l) => l ? `> ${l}` : ">").join("\n");
 }
 var encodePath = (path) => path.split("/").map(encodeURIComponent).join("/");
 function fileCell(repo, path, multiRepo) {
@@ -50219,16 +50243,35 @@ function ignoredFilesTable(files, multiRepo) {
   });
   return lines.join("\n");
 }
-function ignoredFindingsList(files, multiRepo) {
+function ignoredFindingsList(files, multiRepo, full) {
   return files.map((file2) => {
+    const repo = multiRepo ? ` <sub>${file2.repo}</sub>` : "";
+    const heading = `[\`${escapeInline(file2.path)}\`](${fileUrl(file2.repo, file2.path)})${repo}`;
+    if (!full) {
+      const items2 = file2.items.map((f) => {
+        const severity = f.severity ? ` \xB7 ${severityLabel(f.severity)}` : "";
+        return `- [**${lineText(f)}**](${lineUrl(f)}) \xB7 ${f.bot}${severity} \xB7 [#${f.pr}](${f.url})<br>${snippet(f.body)}`;
+      });
+      return `${heading}
+
+${items2.join("\n")}`;
+    }
     const items = file2.items.map((f) => {
       const severity = f.severity ? ` \xB7 ${severityLabel(f.severity)}` : "";
-      return `- [**${lineText(f)}**](${lineUrl(f)}) \xB7 ${f.bot}${severity} \xB7 [#${f.pr}](${f.url})<br>${snippet(f.body)}`;
+      return [
+        "<details>",
+        `<summary><b>${lineText(f)}</b> \xB7 ${f.bot}${severity} \xB7 #${f.pr} \xB7 ${summaryGist(f.body)}</summary>`,
+        "",
+        `[Code at ${lineText(f)}](${lineUrl(f)}) \xB7 [Comment on #${f.pr}](${f.url})`,
+        "",
+        fullComment(f.body, f.url),
+        "",
+        "</details>"
+      ].join("\n");
     });
-    const repo = multiRepo ? ` <sub>${file2.repo}</sub>` : "";
-    return `[\`${escapeInline(file2.path)}\`](${fileUrl(file2.repo, file2.path)})${repo}
+    return `${heading}
 
-${items.join("\n")}`;
+${items.join("\n\n")}`;
   }).join("\n\n");
 }
 var SEVERITY_ORDER = ["critical", "p0", "p1", "major", "important", "high", "warning", "p2", "medium", "minor", "p3", "low", "nit", "note", "pre-existing"];
@@ -50286,7 +50329,7 @@ var HOW_IT_WORKS = [
   "",
   "These are heuristics: a nearby change isn't proof the comment caused it, and a fix made in a later PR looks ignored. The JSON report records the rule behind every outcome."
 ].join("\n");
-function renderMarkdown(ledger) {
+function renderMarkdown(ledger, { fullComments = true } = {}) {
   const out = [];
   const multiRepo = ledger.repos.length > 1;
   const repoList = ledger.repos.map((r) => `[${r}](https://github.com/${r})`).join(" \xB7 ");
@@ -50308,7 +50351,7 @@ function renderMarkdown(ledger) {
       "<sub>Findings nobody replied to, reacted to or changed code for. Line links open the code the reviewer saw; PR links open the comment.</sub>"
     );
     out.push(ignoredFilesTable(ledger.topIgnoredFiles, multiRepo));
-    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo)));
+    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo, fullComments)));
   }
   if (ledger.bySeverity.length > 0) {
     out.push("### By severity");
@@ -50885,6 +50928,7 @@ function parseOutputs(value) {
 }
 
 // src/action.ts
+var ISSUE_BODY_LIMIT = 65e3;
 async function main() {
   const token = getInput("github-token", { required: true });
   setSecret(token);
@@ -50936,7 +50980,8 @@ async function main() {
     const issueRepo = getInput("issue-repo") || process.env.GITHUB_REPOSITORY;
     if (!issueRepo) throw new Error("issue output needs issue-repo or GITHUB_REPOSITORY.");
     const title = getInput("issue-title") || "Mind the bot";
-    const issue3 = await upsertIssue(client, issueRepo, title, markdown);
+    const body = markdown.length <= ISSUE_BODY_LIMIT ? markdown : renderMarkdown(ledger, { fullComments: false });
+    const issue3 = await upsertIssue(client, issueRepo, title, body.slice(0, ISSUE_BODY_LIMIT));
     info(`${issue3.created ? "Created" : "Updated"} ${issue3.url}`);
     setOutput("issue-url", issue3.url);
   }

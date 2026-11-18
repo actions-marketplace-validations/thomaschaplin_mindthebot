@@ -157,3 +157,29 @@ describe("topIgnoredFiles", () => {
     expect(ledger.topIgnoredFiles[0]!.items.map((f) => f.line)).toEqual([7, 12]);
   });
 });
+
+describe("fullComment", async () => {
+  const { fullComment, MAX_COMMENT_CHARS } = await import("../src/report/markdown.ts");
+
+  it("quotes the comment and drops hidden HTML comments", () => {
+    expect(fullComment("<!-- meta -->\n**Title**\n\nBody line", "u")).toBe("> **Title**\n>\n> Body line");
+  });
+
+  it("cuts long comments at a paragraph and links to the rest", () => {
+    const para = `${"word ".repeat(150)}\n\n`;
+    const out = fullComment(para.repeat(10), "https://x/c");
+    expect(out.length).toBeLessThan(MAX_COMMENT_CHARS + 200);
+    expect(out).toMatch(/Read the full comment on GitHub\]\(https:\/\/x\/c\)\.\*$/);
+  });
+
+  it("closes a code fence or <details> block the cut left open", () => {
+    const body = `Intro\n\n<details>\n<summary>Prompt</summary>\n\n\`\`\`ts\n${"const x = 1;\n".repeat(400)}\`\`\`\n\n</details>`;
+    const out = fullComment(body, "u");
+    expect((out.match(/```/g) ?? []).length % 2).toBe(0);
+    expect((out.match(/<details/g) ?? []).length).toBe((out.match(/<\/details>/g) ?? []).length);
+  });
+
+  it("removes a stray closing tag that would close the report's own block", () => {
+    expect(fullComment("Text </details> more", "u")).toBe("> Text  more");
+  });
+});
