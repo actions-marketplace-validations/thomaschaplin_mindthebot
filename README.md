@@ -1,20 +1,18 @@
 # Mind the bot
 
-**How often does your team act on what its AI code reviewers say?**
+**Does your team act on what its AI code reviewers say?**
 
-Teams are adding AI reviewers to every pull request: Claude, Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex. Few teams check whether those comments lead to anything. Without data, people who find a bot noisy can't prove it, people who like it can't prove it catches real issues, and nobody knows whether a prompt or model change made it better or worse.
-
-`mindthebot` reads your merged PRs and scores every issue an AI reviewer raised, whether as an inline comment or as an item in a summary comment, as **addressed**, **dismissed**, **acknowledged** or **ignored**:
+AI reviewers like Claude, Greptile, Copilot and CodeRabbit now comment on most pull requests. `mindthebot` tells you how many of those comments led to a fix, how many were pushed back on, and how many nobody looked at.
 
 ```bash
-npx mindthebot --repo owner/name --since 30d
+npx mindthebot --repo owner/name
 ```
 
-It's read-only and needs no setup inside the repo.
+It only reads from GitHub. It never comments on, changes or approves a PR.
 
-## Example
+## What you get
 
-Every report opens with headline numbers and one line per reviewer:
+A report with one line per reviewer:
 
 | Reviewer | Addressed | Findings |
 |:--|:--|--:|
@@ -23,67 +21,87 @@ Every report opens with headline numbers and one line per reviewer:
 | 🟡 **CodeRabbit**<br><sub>Partly acted on</sub> | `██████░░░░` **57%** | 206 |
 | 🟡 **Claude**<br><sub>Partly acted on</sub> | `█████░░░░░` **54%** | 112 |
 
-🟢 **Mostly acted on**: at least 60% of findings addressed. 🟡 **Partly acted on**: 40–59%. 🔴 **Mostly not acted on**: under 40%. ⚪ With fewer than 5 findings, a reviewer gets no status: the sample is too small to mean much.
+<sub>Merged PRs from eight public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex, claude-code-action), last 30 days, run on 16 Nov 2026. 🟢 60%+ addressed · 🟡 40–59% · 🔴 under 40%.</sub>
 
-These numbers come from eight well-known public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex and claude-code-action): merged PRs from the last 30 days, up to 80 per repo, run on 16 Nov 2026. Below that, the report has:
+Below that, the report lists:
 
-- **the files with the most ignored findings**, each linked to the exact lines the reviewer commented on and to the comment itself, with a one-line gist of what it said
-- every reviewer's addressed, dismissed, acknowledged and ignored counts, overall and per repo
-- a breakdown by the severity each reviewer gave. On this sample, Greptile's P1s were addressed 73% of the time against 59% for P2s, and CodeRabbit's "major" 60% against 58% for "minor".
-- time to merge for PRs with and without AI findings
-- the files where findings get dismissed most
+- the files with the most ignored comments, linked to the exact lines
+- addressed, dismissed, acknowledged and ignored counts per reviewer and per repo
+- results by the severity each reviewer gave (for example Greptile's P1 vs P2)
+- time to merge for PRs with and without AI comments
 
-These numbers describe how each team responds to its reviewer, not which reviewer is "best": teams, codebases and settings differ.
+The numbers show how a team responds to its reviewer, not which reviewer is best.
 
-## How it decides
+## How it works
 
-For each AI comment, it works out what changed in the code after the comment:
+```mermaid
+flowchart LR
+    A["Merged PRs<br/>from the last 30 days"] --> B["Find AI review comments<br/>inline comments and<br/>items in summary comments"]
+    B --> C["Look at what happened next<br/>code changes, replies,<br/>reactions, resolved threads"]
+    C --> D["Give each comment<br/>an outcome"]
+    D --> E["Report<br/>Markdown, JSON or<br/>a GitHub job summary"]
+```
 
-- **Addressed:** code within 3 lines of the comment changed afterwards, or someone replied "fixed" / "good catch" (or gave a 👍) and the file changed.
-- **Dismissed:** a 👎, a reply like "intentional", "out of scope" or "leaving as is", or the thread was resolved with no nearby change.
-- **Acknowledged:** someone replied ("confirmed, leaving this open") or gave a 👍, but no nearby change followed and nobody dismissed it.
-- **Ignored:** no reply, reaction, resolution or nearby change.
-- **Not addressed:** for issues listed in a summary comment, which have no replies or resolution: no nearby change.
+Each AI comment is one **finding**. For every finding, mindthebot asks a few questions in order and stops at the first "yes":
 
-**Summary comments** are parsed for numbered items with a severity and a `file:line`, such as `claude-code-action`'s sticky "Code Review -- 2 issue(s) found" comment. A re-review that repeats an open issue is merged with the original, and the issue is checked from the last review that repeated it.
+```mermaid
+flowchart TD
+    Start(["AI review comment"]) --> Q1["Did a person reply to reject it?<br/>'intentional', 'out of scope'"]
+    Q1 -- yes --> D1(["🚫 Dismissed"])
+    Q1 -- no --> Q2["Did code within 3 lines<br/>change afterwards?"]
+    Q2 -- yes --> A1(["✅ Addressed"])
+    Q2 -- no --> Q3["Did someone reply 'fixed' or give a 👍,<br/>and the file changed?"]
+    Q3 -- yes --> A2(["✅ Addressed"])
+    Q3 -- no --> Q4["Was it given a 👎,<br/>or resolved with no change?"]
+    Q4 -- yes --> D2(["🚫 Dismissed"])
+    Q4 -- no --> Q5["Did anyone reply or give a 👍?"]
+    Q5 -- yes --> K(["💬 Acknowledged"])
+    Q5 -- no --> I(["💤 Ignored"])
+```
 
-**Branches that merge `main` back in** (common in big monorepos) are handled. Comparing against the final commit would pull in everyone else's changes, so the tool combines the PR's own commits instead.
+| Outcome | Means |
+|---|---|
+| ✅ **Addressed** | The code was changed in response. |
+| 🚫 **Dismissed** | Someone decided not to act on it. |
+| 💬 **Acknowledged** | Someone responded, but nothing changed yet. |
+| 💤 **Ignored** | No reply, no reaction, no change. |
 
-Every finding in the JSON output records the rule that decided it, so any number can be audited. These are heuristics, and they have limits: a nearby change isn't proof of cause, and a fix made in another PR looks ignored. **[docs/heuristics.md](docs/heuristics.md)** explains the rules, the known limits, and how to check them against your own labels.
+Items in a summary comment (such as Claude's "Code Review: 2 issues found") can't be replied to, so they are either **addressed** or **not addressed**.
 
-## Usage
+Every finding in the JSON output records which rule decided it, so you can check any number. The rules are heuristics: a nearby change isn't proof it fixed the comment, and a fix made in a later PR looks ignored. [docs/heuristics.md](docs/heuristics.md) has the full rules and their limits.
+
+## Run it locally
+
+You need Node 22+ and a GitHub token: `GITHUB_TOKEN`, or your GitHub CLI login (`gh auth login`). Read-only access is enough.
 
 ```bash
-# Token: GITHUB_TOKEN, or your GitHub CLI login (`gh auth login`). Read-only access is enough.
-npx mindthebot --repo owner/name                       # markdown, last 30 days
-npx mindthebot --repo owner/a,owner/b --since 2w       # several repos
+npx mindthebot --repo owner/name                         # last 30 days, Markdown
+npx mindthebot --repo owner/a,owner/b --since 2w         # several repos
 npx mindthebot --repo owner/name --format json -o report.json
-npx mindthebot --repo owner/name --config mindthebot.yml
 ```
 
 | Option | Default | |
 |---|---|---|
-| `--repo` | required | `owner/name`, repeatable or comma-separated |
-| `--since` | `30d` | `12h`, `30d`, `2w` |
-| `--max-prs` | `200` | per repo |
-| `--config` | built-in | YAML: reviewers, proximity, phrases. See [mindthebot.example.yml](mindthebot.example.yml) |
+| `--repo` | required | `owner/name`; repeat or comma-separate for several |
+| `--since` | `30d` | how far back to look: `12h`, `30d`, `2w` |
+| `--max-prs` | `200` | most merged PRs to read per repo |
 | `--format` | `md` | `md` or `json` |
-| `--out` | stdout | write to a file |
-| `--no-cache` | cache on | API responses are cached in `.mindthebot/cache/` |
+| `--out` | stdout | write the report to a file |
+| `--config` | built-in | YAML file to change reviewers, distance or phrases ([example](mindthebot.example.yml)) |
+| `--no-cache` | cache on | GitHub responses are cached in `.mindthebot/cache/` |
 
-### Reviewers it knows about
+**Reviewers it knows:** Claude, Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex and Gemini. Add any other bot in the config.
 
-Claude (`claude[bot]`, or `github-actions[bot]` comments that mention Claude), Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex and Gemini. You can add any other bot login in the config.
+## Run it every week (GitHub Action)
 
-## Weekly report (GitHub Action)
-
-Run it on a schedule and publish the report as the run's job summary:
+Add this workflow and the report appears on each run's summary page:
 
 ```yaml
+# .github/workflows/mindthebot.yml
 name: Mind the bot
 on:
   schedule:
-    - cron: "0 8 * * 1"   # Mondays
+    - cron: "0 8 * * 1"   # Mondays at 08:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -101,36 +119,34 @@ jobs:
 
 | Input | Default | |
 |---|---|---|
-| `repos` | current repo | `owner/name`, comma- or newline-separated |
-| `since` | `7d` | `12h`, `7d`, `2w` |
+| `repos` | this repo | `owner/name`, comma- or newline-separated |
+| `since` | `7d` | how far back to look |
 | `max-prs` | `200` | per repo |
 | `config` | built-in | path to a YAML config |
 | `output` | `job-summary` | `job-summary` or `none` |
 | `github-token` | `${{ github.token }}` | use a PAT or GitHub App token to read other private repos |
 
-Outputs: `markdown-path`, `json-path`, `findings`, `by-bot` (JSON of per-reviewer rates, handy for alerting in a later step). The full JSON report is written to `mindthebot.json`, so you can upload it with `actions/upload-artifact`.
+It also writes `mindthebot.md` and `mindthebot.json`, and sets the outputs `findings` and `by-bot` (rates per reviewer as JSON), so a later step can upload the report or alert on a rate.
 
-This repo runs the Action on itself every week: see [.github/workflows/mindthebot.yml](.github/workflows/mindthebot.yml).
+This repo runs it on itself every week: [.github/workflows/mindthebot.yml](.github/workflows/mindthebot.yml).
 
 ## Development
 
 ```bash
 npm install
-npm test            # vitest: classifier rules, diff parsing, summary parsing, a fixture-based pipeline test
+npm test                           # unit and fixture tests
 npm run typecheck
-npm run dev -- --repo owner/name   # run from source (Node 22.18+)
-npm run build       # bundle the CLI (dist/cli.js) and the Action (action/dist/index.js)
-npm run check-dist  # rebuild and fail if the committed Action bundle is out of date (CI runs this)
+npm run dev -- --repo owner/name   # run from source
+npm run build                      # build the CLI and the Action bundle
+npm run check-dist                 # fail if the committed Action bundle is out of date (CI runs this)
 ```
 
 ## Roadmap
 
-- [x] GitHub Action: a weekly report as a job summary
-- [x] Score issues listed in summary comments, with a severity breakdown
-- [ ] A 30-finding hand-labelled agreement check, with the rate published here
+- [ ] Hand-label 30 findings and publish how often the rules agree
 - [ ] Group findings by category (bug, security, style)
-- [ ] Pair with an eval harness of planted bugs, to measure what reviewers *miss*, not just what they say
+- [ ] Plant known bugs to measure what reviewers *miss*, not just what they say
 
 ## Licence
 
-MIT.
+MIT
