@@ -1,6 +1,6 @@
 # Mind the bot
 
-**Mind the gap between what your AI reviewer says and what your team does.**
+**How often does your team act on what its AI code reviewers say?**
 
 Teams are adding AI reviewers to every pull request: Claude, Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex. Few teams check whether those comments lead to anything. Without data, people who find a bot noisy can't prove it, people who like it can't prove it catches real issues, and nobody knows whether a prompt or model change made it better or worse.
 
@@ -12,20 +12,20 @@ npx mindthebot --repo owner/name --since 30d
 
 It's read-only and needs no setup inside the repo.
 
-## 🚇 Service status
+## Example
 
-Every report opens with a status board, one line per reviewer:
+Every report opens with a summary, one line per reviewer:
 
 | Reviewer | Status | |
 |---|---|---|
-| **Copilot** | 🟢 Good service | 79% of 152 findings addressed |
-| **Greptile** | 🟢 Good service | 64% of 173 findings addressed |
-| **CodeRabbit** | 🟡 Minor delays | 57% of 206 findings addressed |
-| **Claude** | 🟡 Minor delays | 54% of 112 findings addressed |
+| **Copilot** | 🟢 Mostly acted on | 79% of 152 findings addressed |
+| **Greptile** | 🟢 Mostly acted on | 64% of 173 findings addressed |
+| **CodeRabbit** | 🟡 Partly acted on | 57% of 206 findings addressed |
+| **Claude** | 🟡 Partly acted on | 54% of 112 findings addressed |
 
-🟢 **Good service**: at least 60% of findings addressed. 🟡 **Minor delays**: 40–59%. 🔴 **Severe delays**: under 40%. ⚪ With fewer than 5 findings, a reviewer gets no status: the sample is too small to mean much.
+🟢 **Mostly acted on**: at least 60% of findings addressed. 🟡 **Partly acted on**: 40–59%. 🔴 **Mostly not acted on**: under 40%. ⚪ With fewer than 5 findings, a reviewer gets no status: the sample is too small to mean much.
 
-This board comes from eight well-known public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex and claude-code-action): merged PRs from the last 30 days, up to 80 per repo, run on 16 Nov 2026. Below the board, the full report has:
+These numbers come from eight well-known public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex and claude-code-action): merged PRs from the last 30 days, up to 80 per repo, run on 16 Nov 2026. Below the summary, the full report has:
 
 - every reviewer's addressed, dismissed and ignored counts, overall and per repo
 - a breakdown by the severity each reviewer gave. On this sample, Greptile's P1s were addressed 73% of the time against 59% for P2s, and CodeRabbit's "major" 60% against 58% for "minor".
@@ -34,7 +34,7 @@ This board comes from eight well-known public repos (VS Code, supabase, TanStack
 
 These numbers describe how each team responds to its reviewer, not which reviewer is "best": teams, codebases and settings differ.
 
-## 🗺️ How it decides
+## How it decides
 
 For each AI comment, it works out what changed in the code after the comment:
 
@@ -49,7 +49,7 @@ For each AI comment, it works out what changed in the code after the comment:
 
 Every finding in the JSON output records the rule that decided it, so any number can be audited. These are heuristics, and they have limits: a nearby change isn't proof of cause, and a fix made in another PR looks ignored. **[docs/heuristics.md](docs/heuristics.md)** explains the rules, the known limits, and how to check them against your own labels.
 
-## 🎫 Usage
+## Usage
 
 ```bash
 # Token: GITHUB_TOKEN, or your GitHub CLI login (`gh auth login`). Read-only access is enough.
@@ -75,7 +75,7 @@ npx mindthebot --repo owner/name --datadog             # also send gauges to Dat
 
 Claude (`claude[bot]`, or `github-actions[bot]` comments that mention Claude), Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex and Gemini. You can add any other bot login in the config.
 
-## 🔁 Weekly report (GitHub Action)
+## Weekly report (GitHub Action)
 
 Run it on a schedule and publish the report as a job summary, a living issue, or both:
 
@@ -116,7 +116,7 @@ Outputs: `markdown-path`, `json-path`, `findings`, `by-bot` (JSON of per-reviewe
 
 This repo runs the Action on itself every week: see [.github/workflows/mindthebot.yml](.github/workflows/mindthebot.yml).
 
-## 🛠️ Development
+## Development
 
 ```bash
 npm install
@@ -127,7 +127,7 @@ npm run build       # bundle the CLI (dist/cli.js) and the Action (action/dist/i
 npm run check-dist  # rebuild and fail if the committed Action bundle is out of date (CI runs this)
 ```
 
-## 🚧 Planned works
+## Roadmap
 
 - [x] GitHub Action: a weekly report as a job summary or an issue
 - [x] Score issues listed in summary comments, with a severity breakdown
@@ -137,4 +137,4 @@ npm run check-dist  # rebuild and fail if the committed Action bundle is out of 
 
 ## Licence
 
-MIT. *Mind the bot* is a nod to the London Underground's "Mind the gap". This project isn't affiliated with or endorsed by Transport for London.
+MIT.

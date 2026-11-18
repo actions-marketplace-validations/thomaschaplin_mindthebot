@@ -64,21 +64,21 @@ function mergeRow(label: string, m: MergeTimes): string {
 export const MIN_FINDINGS_FOR_STATUS = 5;
 
 /**
- * A London Underground-style status for one reviewer, from how often its
- * findings are addressed. The thresholds are deliberately simple.
+ * A one-line status for a reviewer, from how often its findings are
+ * addressed. The thresholds are deliberately simple.
  */
-export function serviceStatus(s: BotStats): { icon: string; label: string } {
+export function reviewerStatus(s: BotStats): { icon: string; label: string } {
   if (s.findings === 0) return { icon: "⚪", label: "No findings" };
   if (s.findings < MIN_FINDINGS_FOR_STATUS) return { icon: "⚪", label: "Too few findings" };
-  if (s.addressedRate >= 0.6) return { icon: "🟢", label: "Good service" };
-  if (s.addressedRate >= 0.4) return { icon: "🟡", label: "Minor delays" };
-  return { icon: "🔴", label: "Severe delays" };
+  if (s.addressedRate >= 0.6) return { icon: "🟢", label: "Mostly acted on" };
+  if (s.addressedRate >= 0.4) return { icon: "🟡", label: "Partly acted on" };
+  return { icon: "🔴", label: "Mostly not acted on" };
 }
 
 function statusBoard(rows: BotStats[]): string {
   const lines = ["| Reviewer | Status | |", "|---|---|---|"];
   for (const s of rows) {
-    const { icon, label } = serviceStatus(s);
+    const { icon, label } = reviewerStatus(s);
     const detail =
       s.findings === 0
         ? `commented on ${s.prsReviewed} PR${s.prsReviewed === 1 ? "" : "s"}, no file-and-line findings`
@@ -91,17 +91,17 @@ function statusBoard(rows: BotStats[]): string {
 export function renderMarkdown(ledger: Ledger): string {
   const out: string[] = [];
   out.push(`# Mind the bot`);
-  out.push("_Mind the gap between what your AI reviewer says and what your team does._");
+  out.push("_How often your team acts on what its AI code reviewers say._");
   out.push(
     `Merged PRs from the last **${ledger.since}** in ${ledger.repos.map((r) => `\`${r}\``).join(", ")}. ` +
       `${ledger.prsAnalysed} PRs analysed, ${ledger.prsWithAi} with AI review comments. Generated ${ledger.generatedAt.slice(0, 10)}.`,
   );
 
   if (ledger.byBot.length > 0) {
-    out.push(`## Service status`);
+    out.push(`## At a glance`);
     out.push(statusBoard(ledger.byBot));
     out.push(
-      `_🟢 Good service: at least 60% of findings addressed. 🟡 Minor delays: 40–59%. 🔴 Severe delays: under 40%. ⚪ Fewer than ${MIN_FINDINGS_FOR_STATUS} findings: no status._`,
+      `_🟢 at least 60% of findings addressed. 🟡 40–59%. 🔴 under 40%. ⚪ Fewer than ${MIN_FINDINGS_FOR_STATUS} findings: no status._`,
     );
   }
 

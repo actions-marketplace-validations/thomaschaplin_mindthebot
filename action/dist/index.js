@@ -50014,17 +50014,17 @@ function mergeRow(label, m) {
   return `| ${label} | ${m.prs} | ${num(m.medianHours)}h | ${num(m.p75Hours)}h |`;
 }
 var MIN_FINDINGS_FOR_STATUS = 5;
-function serviceStatus(s) {
+function reviewerStatus(s) {
   if (s.findings === 0) return { icon: "\u26AA", label: "No findings" };
   if (s.findings < MIN_FINDINGS_FOR_STATUS) return { icon: "\u26AA", label: "Too few findings" };
-  if (s.addressedRate >= 0.6) return { icon: "\u{1F7E2}", label: "Good service" };
-  if (s.addressedRate >= 0.4) return { icon: "\u{1F7E1}", label: "Minor delays" };
-  return { icon: "\u{1F534}", label: "Severe delays" };
+  if (s.addressedRate >= 0.6) return { icon: "\u{1F7E2}", label: "Mostly acted on" };
+  if (s.addressedRate >= 0.4) return { icon: "\u{1F7E1}", label: "Partly acted on" };
+  return { icon: "\u{1F534}", label: "Mostly not acted on" };
 }
 function statusBoard(rows) {
   const lines = ["| Reviewer | Status | |", "|---|---|---|"];
   for (const s of rows) {
-    const { icon, label } = serviceStatus(s);
+    const { icon, label } = reviewerStatus(s);
     const detail = s.findings === 0 ? `commented on ${s.prsReviewed} PR${s.prsReviewed === 1 ? "" : "s"}, no file-and-line findings` : `${pct(s.addressedRate)} of ${s.findings} findings addressed`;
     lines.push(`| **${s.bot}** | ${icon} ${label} | ${detail} |`);
   }
@@ -50033,15 +50033,15 @@ function statusBoard(rows) {
 function renderMarkdown(ledger) {
   const out = [];
   out.push(`# Mind the bot`);
-  out.push("_Mind the gap between what your AI reviewer says and what your team does._");
+  out.push("_How often your team acts on what its AI code reviewers say._");
   out.push(
     `Merged PRs from the last **${ledger.since}** in ${ledger.repos.map((r) => `\`${r}\``).join(", ")}. ${ledger.prsAnalysed} PRs analysed, ${ledger.prsWithAi} with AI review comments. Generated ${ledger.generatedAt.slice(0, 10)}.`
   );
   if (ledger.byBot.length > 0) {
-    out.push(`## Service status`);
+    out.push(`## At a glance`);
     out.push(statusBoard(ledger.byBot));
     out.push(
-      `_\u{1F7E2} Good service: at least 60% of findings addressed. \u{1F7E1} Minor delays: 40\u201359%. \u{1F534} Severe delays: under 40%. \u26AA Fewer than ${MIN_FINDINGS_FOR_STATUS} findings: no status._`
+      `_\u{1F7E2} at least 60% of findings addressed. \u{1F7E1} 40\u201359%. \u{1F534} under 40%. \u26AA Fewer than ${MIN_FINDINGS_FOR_STATUS} findings: no status._`
     );
   }
   out.push(`## By reviewer`);

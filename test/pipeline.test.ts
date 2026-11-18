@@ -99,16 +99,16 @@ describe("utils", () => {
   });
 });
 
-describe("serviceStatus", async () => {
-  const { serviceStatus } = await import("../src/report/markdown.ts");
+describe("reviewerStatus", async () => {
+  const { reviewerStatus } = await import("../src/report/markdown.ts");
   const stats = (findings: number, addressedRate: number) =>
-    ({ findings, addressedRate }) as Parameters<typeof serviceStatus>[0];
+    ({ findings, addressedRate }) as Parameters<typeof reviewerStatus>[0];
 
-  it("maps the addressed rate to a Tube-style status", () => {
-    expect(serviceStatus(stats(10, 0.6)).label).toBe("Good service");
-    expect(serviceStatus(stats(10, 0.45)).label).toBe("Minor delays");
-    expect(serviceStatus(stats(10, 0.1)).label).toBe("Severe delays");
-    expect(serviceStatus(stats(0, 0)).label).toBe("No findings");
-    expect(serviceStatus(stats(3, 0)).label).toBe("Too few findings");
+  it("maps the addressed rate to a status", () => {
+    expect(reviewerStatus(stats(10, 0.6)).label).toBe("Mostly acted on");
+    expect(reviewerStatus(stats(10, 0.45)).label).toBe("Partly acted on");
+    expect(reviewerStatus(stats(10, 0.1)).label).toBe("Mostly not acted on");
+    expect(reviewerStatus(stats(0, 0)).label).toBe("No findings");
+    expect(reviewerStatus(stats(3, 0)).label).toBe("Too few findings");
   });
 });
