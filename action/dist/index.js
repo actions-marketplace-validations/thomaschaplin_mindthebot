@@ -50123,10 +50123,16 @@ function severityLabel(severity) {
   return /^p\d$/i.test(severity) ? severity.toUpperCase() : severity.charAt(0).toUpperCase() + severity.slice(1);
 }
 function escapeInline(text) {
-  return text.replace(/\|/g, "\\|").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const parts = text.split("`");
+  if (parts.length % 2 === 0) parts.splice(-2, 2, `${parts.at(-2)}${parts.at(-1)}`);
+  return parts.map((part, i) => {
+    const piped = part.replace(/\|/g, "\\|");
+    return i % 2 === 1 ? piped : piped.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }).join("`");
 }
+var HTML_TAG = /<\/?(?:a|img|picture|source|sub|sup|br|hr|p|div|span|b|i|em|strong|code|kbd|pre|blockquote|table|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|summary)\b[^>]*>/gi;
 function snippet(body, max = 110) {
-  const lines = body.replace(/<!--[\s\S]*?-->/g, "").replace(/```[\s\S]*?```/g, "").replace(/<details>[\s\S]*?<\/details>/gi, "").replace(/<[^>]+>/g, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).filter((l) => /[a-z]{3}/i.test(l));
+  const lines = body.replace(/<!--[\s\S]*?-->/g, "").replace(/```[\s\S]*?```/g, "").replace(/<details>[\s\S]*?<\/details>/gi, "").replace(HTML_TAG, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).filter((l) => /[a-z]{3}/i.test(l));
   const title = lines.slice(0, 4).map((l) => /^\*\*([^*]+)\*\*(?!\s*·)/.exec(l)?.[1]?.trim()).find((t) => t && /[a-z]{3}/i.test(t));
   const line = (title ?? lines[0] ?? "").replace(/^[\s>#*\-+\d.)]+/, "").replace(/^(?:[🔴🟠🟡🟢🟣🔵⚪⚠❗]|\uFE0F|\s)+/u, "").replace(/^\[[A-Z]+\]:?\s*/, "").replace(/\*\*|__/g, "").replace(/^(?:\([^)]{1,25}\)\s*|[a-z][a-z ,()-]{0,30}:\s*)+/, "").trim();
   const tidy = line.charAt(0).toUpperCase() + line.slice(1);

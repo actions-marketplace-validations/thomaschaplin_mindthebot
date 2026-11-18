@@ -129,6 +129,12 @@ describe("report helpers", async () => {
     expect(snippet(coderabbit)).toBe("Respect reduced motion.");
     expect(snippet("**<sub><sub>![P1 Badge](https://x/p1)</sub></sub>  Document the lifecycle**\n\nBody")).toBe("Document the lifecycle");
     expect(snippet("**App IDs lack discovery guidance** The new filter needs an owned id.")).toBe("App IDs lack discovery guidance");
+    expect(snippet("Needs an owned `app_id_<uuid>` and returns `Array<string>`")).toBe(
+      "Needs an owned `app_id_<uuid>` and returns `Array<string>`",
+    );
+    expect(snippet("Generic Map<K, V> is unsafe")).toBe("Generic Map&lt;K, V&gt; is unsafe");
+    expect(snippet("Call `parse<T>(raw) then more words here", 30)).toBe("Call parse<T>(raw) then more…".replace("<", "&lt;").replace(">", "&gt;"));
+    expect(snippet('<sub><a href="x"><img alt="P2"></a></sub><br/>Uses <b>bold</b> text')).toBe("Uses bold text");
     expect(snippet("a".repeat(5) + " " + "word ".repeat(40), 20)).toHaveLength(20);
   });
 

@@ -39,7 +39,17 @@ function severityLabel(severity: string): string {
 
 /** Make text safe inside a table cell or a list item. */
 function escapeInline(text: string): string {
-  return text.replace(/\|/g, "\\|").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Inside `code`, GitHub shows < and > as typed (and would show &lt; literally),
+  // so only escape them outside code spans. A backtick left unclosed by
+  // truncation is dropped, so the rest isn't swallowed into code.
+  const parts = text.split("`");
+  if (parts.length % 2 === 0) parts.splice(-2, 2, `${parts.at(-2)}${parts.at(-1)}`);
+  return parts
+    .map((part, i) => {
+      const piped = part.replace(/\|/g, "\\|");
+      return i % 2 === 1 ? piped : piped.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    })
+    .join("`");
 }
 
 /**
@@ -47,12 +57,19 @@ function escapeInline(text: string): string {
  * CodeRabbit, Codex), else the first readable line, without HTML, badges,
  * code blocks, markdown markers or leading severity emoji.
  */
+/**
+ * Real HTML tags that reviewers use for badges and layout. Anything else in
+ * angle brackets, such as `app_id_<uuid>` or `Array<string>`, is kept.
+ */
+const HTML_TAG =
+  /<\/?(?:a|img|picture|source|sub|sup|br|hr|p|div|span|b|i|em|strong|code|kbd|pre|blockquote|table|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|summary)\b[^>]*>/gi;
+
 export function snippet(body: string, max = 110): string {
   const lines = body
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/```[\s\S]*?```/g, "")
     .replace(/<details>[\s\S]*?<\/details>/gi, "")
-    .replace(/<[^>]+>/g, " ")
+    .replace(HTML_TAG, " ")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .split("\n")
