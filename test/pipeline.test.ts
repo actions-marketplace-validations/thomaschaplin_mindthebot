@@ -112,3 +112,41 @@ describe("reviewerStatus", async () => {
     expect(reviewerStatus(stats(3, 0)).label).toBe("Too few findings");
   });
 });
+
+describe("report helpers", async () => {
+  const { snippet, sinceLabel, bar } = await import("../src/report/markdown.ts");
+
+  it("pulls the first readable line out of a review comment", () => {
+    expect(snippet('<a href="x"><img alt="P1 Badge" src="y"></a> **Null check missing** in `load`\n\nMore text')).toBe(
+      "Null check missing in `load`",
+    );
+    expect(snippet("🟡 (optional) Retry never stops")).toBe("Retry never stops");
+    expect(snippet("🟣 pre-existing, not blocking: on hosts with shared runners, state leaks")).toBe("On hosts with shared runners, state leaks");
+    expect(snippet("[WARNING] Correctness: timeout | leak")).toBe("Correctness: timeout \\| leak");
+    expect(snippet("<!-- meta -->\n```ts\ncode\n```\nReal text")).toBe("Real text");
+    const coderabbit =
+      '<!-- x -->\n\n**<picture><img src="a.svg" alt=""></picture> Minor** · **Functional Correctness** · **Quick win**\n\n**Respect reduced motion.**\n\nBody.';
+    expect(snippet(coderabbit)).toBe("Respect reduced motion.");
+    expect(snippet("**<sub><sub>![P1 Badge](https://x/p1)</sub></sub>  Document the lifecycle**\n\nBody")).toBe("Document the lifecycle");
+    expect(snippet("a".repeat(5) + " " + "word ".repeat(40), 20)).toHaveLength(20);
+  });
+
+  it("labels durations and draws bars", () => {
+    expect(sinceLabel("7d")).toBe("7 days");
+    expect(sinceLabel("1w")).toBe("1 week");
+    expect(sinceLabel("12h")).toBe("12 hours");
+    expect(bar(0.53)).toBe("`█████░░░░░`");
+    expect(bar(1)).toBe("`██████████`");
+  });
+});
+
+describe("topIgnoredFiles", () => {
+  const ledger = runFixture();
+  it("ranks files by ignored findings, with the findings to link to", () => {
+    expect(ledger.topIgnoredFiles.map((f) => [f.path, f.ignored, f.findings])).toEqual([
+      ["src/api.ts", 2, 2],
+      ["src/db.ts", 1, 1],
+    ]);
+    expect(ledger.topIgnoredFiles[0]!.items.map((f) => f.line)).toEqual([7, 12]);
+  });
+});

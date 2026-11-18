@@ -3674,8 +3674,8 @@ var require_webidl = __commonJS({
       return new TypeError(`${message.header}: ${message.message}`);
     };
     webidl.errors.conversionFailed = function(context) {
-      const plural2 = context.types.length === 1 ? "" : " one of";
-      const message = `${context.argument} could not be converted to${plural2}: ${context.types.join(", ")}.`;
+      const plural3 = context.types.length === 1 ? "" : " one of";
+      const message = `${context.argument} could not be converted to${plural3}: ${context.types.join(", ")}.`;
       return webidl.errors.exception({
         header: context.prefix,
         message
@@ -11241,9 +11241,9 @@ var require_pluralizer = __commonJS({
       this: "these"
     };
     module.exports = class Pluralizer {
-      constructor(singular, plural2) {
+      constructor(singular, plural3) {
         this.singular = singular;
-        this.plural = plural2;
+        this.plural = plural3;
       }
       pluralize(count) {
         const one = count === 1;
@@ -40849,8 +40849,8 @@ var error44 = () => {
       case "not_multiple_of":
         return `N\xFAmero inv\xE1lido: deve ser m\xFAltiplo de ${issue3.divisor}`;
       case "unrecognized_keys": {
-        const plural2 = issue3.keys.length > 1 ? "s" : "";
-        return `Chave${plural2} inv\xE1lida${plural2}: ${joinValues(issue3.keys, ", ")}`;
+        const plural3 = issue3.keys.length > 1 ? "s" : "";
+        return `Chave${plural3} inv\xE1lida${plural3}: ${joinValues(issue3.keys, ", ")}`;
       }
       case "invalid_key":
         return `Entrada inv\xE1lida n${translateOriginWithArticle(issue3.origin, "definite")}`;
@@ -40994,8 +40994,8 @@ var error45 = () => {
       case "not_multiple_of":
         return `N\xFAmero inv\xE1lido: deve ser m\xFAltiplo de ${issue3.divisor}`;
       case "unrecognized_keys": {
-        const plural2 = issue3.keys.length > 1 ? "s" : "";
-        return `Chave${plural2} inv\xE1lida${plural2}: ${joinValues(issue3.keys, ", ")}`;
+        const plural3 = issue3.keys.length > 1 ? "s" : "";
+        return `Chave${plural3} inv\xE1lida${plural3}: ${joinValues(issue3.keys, ", ")}`;
       }
       case "invalid_key":
         return `Entrada inv\xE1lida n${translateOriginWithArticle(issue3.origin, "definite")}`;
@@ -49959,129 +49959,6 @@ async function upsertIssue(client, repo, title, body) {
   return { url: res.data.html_url, created: true };
 }
 
-// src/report/markdown.ts
-var pct = (n) => `${Math.round(n * 100)}%`;
-var countWithRate = (count, rate, total) => total === 0 ? "\u2013" : `${count} (${pct(rate)})`;
-var num = (n, digits = 1) => n === null ? "\u2013" : n.toFixed(digits);
-function duration3(minutes) {
-  if (minutes === null) return "\u2013";
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  if (minutes < 48 * 60) return `${(minutes / 60).toFixed(1)}h`;
-  return `${(minutes / 1440).toFixed(1)}d`;
-}
-function findingsCell(s) {
-  if (s.inlineFindings > 0 && s.summaryFindings > 0) {
-    return `${s.findings} (${s.inlineFindings} inline, ${s.summaryFindings} summary)`;
-  }
-  if (s.summaryFindings > 0) return `${s.findings} (summary)`;
-  return String(s.findings);
-}
-function botTable(rows, withRepo) {
-  const head = [
-    ...withRepo ? ["Repo"] : [],
-    "Reviewer",
-    "PRs",
-    "Findings",
-    "Addressed",
-    "Dismissed",
-    "Ignored",
-    "Not addressed",
-    "Outdated",
-    "Per PR",
-    "First comment"
-  ];
-  const lines = [`| ${head.join(" | ")} |`, `|${head.map(() => "---").join("|")}|`];
-  for (const s of rows) {
-    lines.push(
-      `| ${[
-        ...withRepo ? [s.repo] : [],
-        s.bot,
-        s.prsReviewed,
-        findingsCell(s),
-        countWithRate(s.addressed, s.addressedRate, s.findings),
-        countWithRate(s.dismissed, s.dismissedRate, s.findings),
-        countWithRate(s.ignored, s.ignoredRate, s.findings),
-        countWithRate(s.notAddressed, s.notAddressedRate, s.findings),
-        s.findings === 0 ? "\u2013" : s.outdated,
-        s.findings === 0 ? "\u2013" : num(s.findingsPerPr),
-        duration3(s.medianFirstCommentMinutes)
-      ].join(" | ")} |`
-    );
-  }
-  return lines.join("\n");
-}
-function mergeRow(label, m) {
-  return `| ${label} | ${m.prs} | ${num(m.medianHours)}h | ${num(m.p75Hours)}h |`;
-}
-var MIN_FINDINGS_FOR_STATUS = 5;
-function reviewerStatus(s) {
-  if (s.findings === 0) return { icon: "\u26AA", label: "No findings" };
-  if (s.findings < MIN_FINDINGS_FOR_STATUS) return { icon: "\u26AA", label: "Too few findings" };
-  if (s.addressedRate >= 0.6) return { icon: "\u{1F7E2}", label: "Mostly acted on" };
-  if (s.addressedRate >= 0.4) return { icon: "\u{1F7E1}", label: "Partly acted on" };
-  return { icon: "\u{1F534}", label: "Mostly not acted on" };
-}
-function statusBoard(rows) {
-  const lines = ["| Reviewer | Status | |", "|---|---|---|"];
-  for (const s of rows) {
-    const { icon, label } = reviewerStatus(s);
-    const detail = s.findings === 0 ? `commented on ${s.prsReviewed} PR${s.prsReviewed === 1 ? "" : "s"}, no file-and-line findings` : `${pct(s.addressedRate)} of ${s.findings} findings addressed`;
-    lines.push(`| **${s.bot}** | ${icon} ${label} | ${detail} |`);
-  }
-  return lines.join("\n");
-}
-function renderMarkdown(ledger) {
-  const out = [];
-  out.push(`# Mind the bot`);
-  out.push("_How often your team acts on what its AI code reviewers say._");
-  out.push(
-    `Merged PRs from the last **${ledger.since}** in ${ledger.repos.map((r) => `\`${r}\``).join(", ")}. ${ledger.prsAnalysed} PRs analysed, ${ledger.prsWithAi} with AI review comments. Generated ${ledger.generatedAt.slice(0, 10)}.`
-  );
-  if (ledger.byBot.length > 0) {
-    out.push(`## At a glance`);
-    out.push(statusBoard(ledger.byBot));
-    out.push(
-      `_\u{1F7E2} at least 60% of findings addressed. \u{1F7E1} 40\u201359%. \u{1F534} under 40%. \u26AA Fewer than ${MIN_FINDINGS_FOR_STATUS} findings: no status._`
-    );
-  }
-  out.push(`## By reviewer`);
-  if (ledger.byBot.length === 0) {
-    out.push("_No comments from configured AI reviewers in this window._");
-  } else {
-    out.push(botTable(ledger.byBot, false));
-    out.push(
-      "_**Addressed**: code near the comment changed afterwards, or a reply/\u{1F44D} confirmed it. **Dismissed**: \u{1F44E}, a dismissing reply, or resolved with no nearby change. **Ignored**: no response. **Not addressed**: a summary-comment item with no nearby change (summaries have no replies or resolution, so dismissed and ignored look the same). **Outdated**: GitHub marked the thread outdated but no nearby change was found. **Per PR**: findings per PR the reviewer commented on. **First comment**: median time from PR opened to the review being delivered._"
-    );
-  }
-  if (ledger.repos.length > 1 && ledger.byRepoAndBot.length > 0) {
-    out.push(`## By repo`);
-    out.push(botTable(ledger.byRepoAndBot, true));
-  }
-  if (ledger.bySeverity.length > 0) {
-    out.push(`## By severity`);
-    out.push(
-      [
-        "| Reviewer | Severity | Findings | Addressed |",
-        "|---|---|---|---|",
-        ...ledger.bySeverity.map((s) => `| ${s.bot} | ${s.severity} | ${s.findings} | ${s.addressed} (${pct(s.addressedRate)}) |`)
-      ].join("\n")
-    );
-    out.push("_Severity as labelled by the reviewer itself. A low addressed rate on its highest severity is the number to look at first._");
-  }
-  out.push(`## Time to merge`);
-  out.push(
-    ["| PRs | Count | Median | p75 |", "|---|---|---|---|", mergeRow("With AI findings", ledger.timeToMerge.withAiFindings), mergeRow("Without AI findings", ledger.timeToMerge.withoutAiFindings)].join("\n")
-  );
-  out.push("_Context only: bigger PRs attract more findings and take longer to merge, so this doesn't show cause and effect._");
-  if (ledger.topDismissedFiles.length > 0) {
-    out.push(`## Files where findings get dismissed most`);
-    out.push("Candidates for path exclusions or extra context in your review instructions.");
-    out.push(ledger.topDismissedFiles.map((f) => `- \`${f.repo}\` \`${f.path}\`: ${f.dismissed}`).join("\n"));
-  }
-  return `${out.join("\n\n")}
-`;
-}
-
 // src/util/duration.ts
 var UNITS = {
   h: 60 * 60 * 1e3,
@@ -50113,6 +49990,8 @@ function ratio(part, whole) {
 }
 
 // src/aggregate/metrics.ts
+var MAX_ITEMS_PER_FILE = 5;
+var isIgnored = (f) => f.outcome === "ignored" || f.outcome === "not-addressed";
 function mergeTimes(prs) {
   const hours = prs.map((pr) => minutesBetween(pr.createdAt, pr.mergedAt) / 60);
   return { prs: prs.length, medianHours: median(hours), p75Hours: percentile(hours, 75) };
@@ -50186,6 +50065,19 @@ function buildLedger(prs, findings, options) {
     entry.dismissed += 1;
     dismissedByFile.set(key, entry);
   }
+  const byFile = /* @__PURE__ */ new Map();
+  for (const f of findings) {
+    if (!f.path) continue;
+    const key = `${f.repo}:${f.path}`;
+    const entry = byFile.get(key) ?? { repo: f.repo, path: f.path, ignored: 0, findings: 0, items: [] };
+    entry.findings += 1;
+    if (isIgnored(f)) {
+      entry.ignored += 1;
+      entry.items.push(f);
+    }
+    byFile.set(key, entry);
+  }
+  const topIgnoredFiles = [...byFile.values()].filter((f) => f.ignored > 0).map((f) => ({ ...f, items: [...f.items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, MAX_ITEMS_PER_FILE) })).sort((a, b) => b.ignored - a.ignored || b.findings - a.findings || a.path.localeCompare(b.path)).slice(0, 10);
   const withAi = prs.filter((pr) => pr.findings.length > 0);
   const withoutAi = prs.filter((pr) => pr.findings.length === 0);
   return {
@@ -50199,8 +50091,273 @@ function buildLedger(prs, findings, options) {
     byRepoAndBot,
     bySeverity,
     topDismissedFiles: [...dismissedByFile.values()].sort((a, b) => b.dismissed - a.dismissed).slice(0, 10),
+    topIgnoredFiles,
     findings
   };
+}
+
+// src/report/markdown.ts
+var pct = (n) => `${Math.round(n * 100)}%`;
+var num = (n, digits = 1) => n === null ? "\u2013" : n.toFixed(digits);
+var plural2 = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+function bar(rate, width = 10) {
+  const filled = Math.max(0, Math.min(width, Math.round(rate * width)));
+  return `\`${"\u2588".repeat(filled)}${"\u2591".repeat(width - filled)}\``;
+}
+function duration3(minutes) {
+  if (minutes === null) return "\u2013";
+  if (minutes < 60) return `${Math.round(minutes)}m`;
+  if (minutes < 48 * 60) return `${(minutes / 60).toFixed(1)}h`;
+  return `${(minutes / 1440).toFixed(1)}d`;
+}
+function sinceLabel(since) {
+  const match = /^(\d+)([hdw])$/.exec(since.trim());
+  if (!match) return since;
+  const unit = { h: "hour", d: "day", w: "week" }[match[2]];
+  return plural2(Number(match[1]), unit);
+}
+function dateLabel(iso) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+function severityLabel(severity) {
+  return /^p\d$/i.test(severity) ? severity.toUpperCase() : severity.charAt(0).toUpperCase() + severity.slice(1);
+}
+function escapeInline(text) {
+  return text.replace(/\|/g, "\\|").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function snippet(body, max = 110) {
+  const lines = body.replace(/<!--[\s\S]*?-->/g, "").replace(/```[\s\S]*?```/g, "").replace(/<details>[\s\S]*?<\/details>/gi, "").replace(/<[^>]+>/g, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).filter((l) => /[a-z]{3}/i.test(l));
+  const title = lines.slice(0, 4).map((l) => /^\*\*([^*]+)\*\*$/.exec(l)?.[1]?.trim()).find((t) => t && /[a-z]{3}/i.test(t));
+  const line = (title ?? lines[0] ?? "").replace(/^[\s>#*\-+\d.)]+/, "").replace(/^(?:[🔴🟠🟡🟢🟣🔵⚪⚠❗]|\uFE0F|\s)+/u, "").replace(/^\[[A-Z]+\]:?\s*/, "").replace(/\*\*|__/g, "").replace(/^(?:\([^)]{1,25}\)\s*|[a-z][a-z ,()-]{0,30}:\s*)+/, "").trim();
+  const tidy = line.charAt(0).toUpperCase() + line.slice(1);
+  const short = tidy.length > max ? `${tidy.slice(0, max - 1).trimEnd()}\u2026` : tidy;
+  return escapeInline(short);
+}
+var encodePath = (path) => path.split("/").map(encodeURIComponent).join("/");
+function fileCell(repo, path, multiRepo) {
+  const slash = path.lastIndexOf("/");
+  const name = path.slice(slash + 1);
+  const folder = slash > 0 ? path.slice(0, slash) : "";
+  const under = [multiRepo ? repo : "", folder].filter(Boolean).join(" \xB7 ");
+  return `[\`${escapeInline(name)}\`](${fileUrl(repo, path)})${under ? `<br><sub>${escapeInline(under)}</sub>` : ""}`;
+}
+function fileUrl(repo, path) {
+  return `https://github.com/${repo}/blob/HEAD/${encodePath(path)}`;
+}
+function lineUrl(f) {
+  if (!f.path || !f.line || !f.commitOid) return f.url;
+  const range = f.endLine && f.endLine !== f.line ? `#L${f.line}-L${f.endLine}` : `#L${f.line}`;
+  return `https://github.com/${f.repo}/blob/${f.commitOid}/${encodePath(f.path)}${range}`;
+}
+function lineText(f) {
+  if (!f.line) return "file";
+  return f.endLine && f.endLine !== f.line ? `L${f.line}\u2013${f.endLine}` : `L${f.line}`;
+}
+var MIN_FINDINGS_FOR_STATUS = 5;
+function reviewerStatus(s) {
+  if (s.findings === 0) return { icon: "\u26AA", label: "No findings" };
+  if (s.findings < MIN_FINDINGS_FOR_STATUS) return { icon: "\u26AA", label: "Too few findings" };
+  if (s.addressedRate >= 0.6) return { icon: "\u{1F7E2}", label: "Mostly acted on" };
+  if (s.addressedRate >= 0.4) return { icon: "\u{1F7E1}", label: "Partly acted on" };
+  return { icon: "\u{1F534}", label: "Mostly not acted on" };
+}
+function details(summary2, body) {
+  return `<details>
+<summary><b>${summary2}</b></summary>
+
+${body}
+
+</details>`;
+}
+function headline(ledger) {
+  const findings = ledger.findings.length;
+  const addressed = ledger.findings.filter((f) => f.outcome === "addressed").length;
+  const ignored = ledger.findings.filter(isIgnored).length;
+  const reviewedShare = ledger.prsAnalysed === 0 ? "" : ` <sub>${pct(ledger.prsWithAi / ledger.prsAnalysed)}</sub>`;
+  const rateOf = (n) => findings === 0 ? "\u2013" : `**${pct(n / findings)}**`;
+  return [
+    "| Merged PRs | Reviewed by AI | Findings | Addressed | Ignored |",
+    "|:---:|:---:|:---:|:---:|:---:|",
+    `| **${ledger.prsAnalysed}** | **${ledger.prsWithAi}**${reviewedShare} | **${findings}** | ${rateOf(addressed)} | ${rateOf(ignored)} |`
+  ].join("\n");
+}
+function reviewersTable(rows) {
+  const lines = ["| Reviewer | Addressed | Findings | Breakdown |", "|:--|:--|--:|:--|"];
+  for (const s of rows) {
+    const { icon, label } = reviewerStatus(s);
+    if (s.findings === 0) {
+      lines.push(`| ${icon} **${s.bot}** | \u2013 | 0 | <sub>commented on ${plural2(s.prsReviewed, "PR")}, no file-and-line findings</sub> |`);
+      continue;
+    }
+    const parts = [
+      `\u2705 ${s.addressed}`,
+      `\u{1F6AB} ${s.dismissed}`,
+      `\u{1F4A4} ${s.ignored + s.notAddressed}`,
+      ...s.outdated > 0 ? [`\u{1F578}\uFE0F ${s.outdated}`] : []
+    ];
+    lines.push(
+      `| ${icon} **${s.bot}**<br><sub>${label}</sub> | ${bar(s.addressedRate)} **${pct(s.addressedRate)}** | ${s.findings} | ${parts.join(" \xB7 ")} |`
+    );
+  }
+  return lines.join("\n");
+}
+var LEGEND = `<sub>\u2705 addressed \xB7 \u{1F6AB} dismissed \xB7 \u{1F4A4} ignored \xB7 \u{1F578}\uFE0F outdated, no change found<br>\u{1F7E2} 60%+ addressed \xB7 \u{1F7E1} 40\u201359% \xB7 \u{1F534} under 40% \xB7 \u26AA fewer than ${MIN_FINDINGS_FOR_STATUS} findings</sub>`;
+var LINES_IN_TABLE = 3;
+function ignoredFilesTable(files, multiRepo) {
+  const lines = ["| | File | Ignored | Lines |", "|--:|:--|:--|:--|"];
+  files.forEach((file2, i) => {
+    const shown = file2.items.slice(0, LINES_IN_TABLE);
+    const where = shown.map((f) => `[${lineText(f)}](${lineUrl(f)}) <sub>[#${f.pr}](${f.url})</sub>`).join(" \xB7 ");
+    const more = file2.ignored > shown.length ? ` \xB7 <sub>+${file2.ignored - shown.length} more</sub>` : "";
+    lines.push(`| ${i + 1} | ${fileCell(file2.repo, file2.path, multiRepo)} | **${file2.ignored}** <sub>of ${file2.findings}</sub> | ${where}${more} |`);
+  });
+  return lines.join("\n");
+}
+function ignoredFindingsList(files, multiRepo) {
+  return files.map((file2) => {
+    const items = file2.items.map((f) => {
+      const severity = f.severity ? ` \xB7 ${severityLabel(f.severity)}` : "";
+      return `- [**${lineText(f)}**](${lineUrl(f)}) \xB7 ${f.bot}${severity} \xB7 [#${f.pr}](${f.url})<br>${snippet(f.body)}`;
+    });
+    const repo = multiRepo ? ` <sub>${file2.repo}</sub>` : "";
+    return `[\`${escapeInline(file2.path)}\`](${fileUrl(file2.repo, file2.path)})${repo}
+
+${items.join("\n")}`;
+  }).join("\n\n");
+}
+var SEVERITY_ORDER = ["critical", "p0", "p1", "major", "important", "high", "warning", "p2", "medium", "minor", "p3", "low", "nit", "note", "pre-existing"];
+var severityRank = (s) => {
+  const i = SEVERITY_ORDER.indexOf(s.toLowerCase());
+  return i === -1 ? SEVERITY_ORDER.length : i;
+};
+function severityTable(ledger) {
+  const rows = [...ledger.bySeverity].sort(
+    (a, b) => a.bot.localeCompare(b.bot) || severityRank(a.severity) - severityRank(b.severity) || a.severity.localeCompare(b.severity)
+  );
+  return [
+    "| Reviewer | Severity | Addressed | Findings |",
+    "|:--|:--|:--|--:|",
+    ...rows.map(
+      (s) => `| ${s.bot} | ${severityLabel(s.severity)} | ${bar(s.addressedRate)} **${pct(s.addressedRate)}** | ${s.findings} |`
+    )
+  ].join("\n");
+}
+function fullTable(rows, withRepo) {
+  const rate = (count, r, total) => total === 0 ? "\u2013" : `${count} <sub>${pct(r)}</sub>`;
+  const hasSummary = rows.some((s) => s.summaryFindings > 0);
+  const columns = [
+    ...withRepo ? [["Repo", (s) => s.repo, true]] : [],
+    ["Reviewer", (s) => `**${s.bot}**`, true],
+    ["PRs", (s) => s.prsReviewed],
+    ...hasSummary ? [
+      ["Inline", (s) => s.inlineFindings],
+      ["Summary", (s) => s.summaryFindings]
+    ] : [["Findings", (s) => s.findings]],
+    ["Addressed", (s) => rate(s.addressed, s.addressedRate, s.findings)],
+    ["Dismissed", (s) => rate(s.dismissed, s.dismissedRate, s.findings)],
+    ["Ignored", (s) => rate(s.ignored, s.ignoredRate, s.findings)],
+    ...hasSummary ? [["Not addressed", (s) => rate(s.notAddressed, s.notAddressedRate, s.findings)]] : [],
+    ["Outdated", (s) => s.findings === 0 ? "\u2013" : s.outdated],
+    ["Per PR", (s) => s.findings === 0 ? "\u2013" : num(s.findingsPerPr)],
+    ["First comment", (s) => duration3(s.medianFirstCommentMinutes)]
+  ];
+  return [
+    `| ${columns.map(([h]) => h).join(" | ")} |`,
+    `|${columns.map(([, , label]) => label ? ":--" : "--:").join("|")}|`,
+    ...rows.map((s) => `| ${columns.map(([, cell]) => cell(s)).join(" | ")} |`)
+  ].join("\n");
+}
+function mergeRow(label, m) {
+  return `| ${label} | ${m.prs} | ${num(m.medianHours)}h | ${num(m.p75Hours)}h |`;
+}
+var HOW_IT_WORKS = [
+  "Every comment an AI reviewer leaves on a file and line, and every file-and-line item in its summary comment, is one **finding**. Each finding is checked against the code that changed after it:",
+  "",
+  '- \u2705 **Addressed**: code within 3 lines changed afterwards, or a reply such as "fixed" (or a \u{1F44D}) came with a change to the file.',
+  '- \u{1F6AB} **Dismissed**: a \u{1F44E}, a reply such as "intentional" or "out of scope", or the thread was resolved with no nearby change.',
+  "- \u{1F4A4} **Ignored**: no reply, reaction, resolution or nearby change. Summary items can't be replied to or resolved, so the full breakdown lists them separately as **not addressed**.",
+  "- \u{1F578}\uFE0F **Outdated**: GitHub marked the thread outdated, but no nearby change was found.",
+  "",
+  "These are heuristics: a nearby change isn't proof the comment caused it, and a fix made in a later PR looks ignored. The JSON report records the rule behind every outcome."
+].join("\n");
+function renderMarkdown(ledger) {
+  const out = [];
+  const multiRepo = ledger.repos.length > 1;
+  const repoList = ledger.repos.map((r) => `[${r}](https://github.com/${r})`).join(" \xB7 ");
+  out.push("## \u{1F916} Mind the bot");
+  out.push(
+    `How often your team acts on what its AI code reviewers say.<br><sub>${repoList} \xB7 merged PRs from the last ${sinceLabel(ledger.since)} \xB7 ${dateLabel(ledger.generatedAt)}</sub>`
+  );
+  out.push(headline(ledger));
+  if (ledger.byBot.length === 0) {
+    out.push("> [!NOTE]\n> No comments from the configured AI reviewers in this window.");
+  } else {
+    out.push("### Reviewers");
+    out.push(reviewersTable(ledger.byBot));
+    out.push(LEGEND);
+  }
+  if (ledger.topIgnoredFiles.length > 0) {
+    out.push("### \u{1F4A4} Files with the most ignored findings");
+    out.push(
+      "<sub>Findings nobody replied to, reacted to or changed code for. Line links open the code the reviewer saw; PR links open the comment.</sub>"
+    );
+    out.push(ignoredFilesTable(ledger.topIgnoredFiles, multiRepo));
+    out.push(details("What the reviewers said", ignoredFindingsList(ledger.topIgnoredFiles, multiRepo)));
+  }
+  if (ledger.bySeverity.length > 0) {
+    out.push("### By severity");
+    out.push(severityTable(ledger));
+    out.push("<sub>Severity as labelled by the reviewer. A low rate on its highest severity is the number to look at first.</sub>");
+  }
+  const more = [];
+  if (ledger.byBot.length > 0) {
+    more.push(
+      details(
+        "\u{1F4CA} Full breakdown",
+        `${fullTable(ledger.byBot, false)}
+
+<sub><b>Per PR</b>: findings per PR the reviewer commented on. <b>First comment</b>: median time from PR opened to the review arriving.</sub>`
+      )
+    );
+  }
+  if (multiRepo && ledger.byRepoAndBot.length > 0) {
+    more.push(details("\u{1F5C2}\uFE0F By repo", fullTable(ledger.byRepoAndBot, true)));
+  }
+  if (ledger.topDismissedFiles.length > 0) {
+    more.push(
+      details(
+        "\u{1F6AB} Files where findings get dismissed most",
+        [
+          "Candidates for path exclusions or extra context in your review instructions.",
+          "",
+          "| File | Dismissed |",
+          "|:--|--:|",
+          ...ledger.topDismissedFiles.map(
+            (f) => `| ${fileCell(f.repo, f.path, multiRepo)} | ${f.dismissed} |`
+          )
+        ].join("\n")
+      )
+    );
+  }
+  more.push(
+    details(
+      "\u23F1\uFE0F Time to merge",
+      [
+        "| PRs | Count | Median | p75 |",
+        "|:--|--:|--:|--:|",
+        mergeRow("With AI findings", ledger.timeToMerge.withAiFindings),
+        mergeRow("Without AI findings", ledger.timeToMerge.withoutAiFindings),
+        "",
+        "<sub>Context only: bigger PRs attract more findings and take longer to merge, so this doesn't show cause and effect.</sub>"
+      ].join("\n")
+    )
+  );
+  more.push(details("\u2139\uFE0F How findings are scored", HOW_IT_WORKS));
+  out.push("---");
+  out.push(more.join("\n\n"));
+  out.push("<sub>Generated by mindthebot \xB7 read-only: it never comments on, changes or approves a PR</sub>");
+  return `${out.join("\n\n")}
+`;
 }
 
 // src/classify/patch.ts

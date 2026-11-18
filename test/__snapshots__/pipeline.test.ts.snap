@@ -1,51 +1,105 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`buildLedger > renders a stable markdown report 1`] = `
-"# Mind the bot
+"## 🤖 Mind the bot
 
-_How often your team acts on what its AI code reviewers say._
+How often your team acts on what its AI code reviewers say.<br><sub>[acme/api](https://github.com/acme/api) · merged PRs from the last 30 days · 16 Nov 2026</sub>
 
-Merged PRs from the last **30d** in \`acme/api\`. 3 PRs analysed, 2 with AI review comments. Generated 2026-11-16.
+| Merged PRs | Reviewed by AI | Findings | Addressed | Ignored |
+|:---:|:---:|:---:|:---:|:---:|
+| **3** | **2** <sub>67%</sub> | **5** | **20%** | **60%** |
 
-## At a glance
+### Reviewers
 
-| Reviewer | Status | |
-|---|---|---|
-| **Claude** | ⚪ Too few findings | 33% of 3 findings addressed |
-| **Greptile** | ⚪ Too few findings | 0% of 2 findings addressed |
+| Reviewer | Addressed | Findings | Breakdown |
+|:--|:--|--:|:--|
+| ⚪ **Claude**<br><sub>Too few findings</sub> | \`███░░░░░░░\` **33%** | 3 | ✅ 1 · 🚫 1 · 💤 1 |
+| ⚪ **Greptile**<br><sub>Too few findings</sub> | \`░░░░░░░░░░\` **0%** | 2 | ✅ 0 · 🚫 0 · 💤 2 |
 
-_🟢 at least 60% of findings addressed. 🟡 40–59%. 🔴 under 40%. ⚪ Fewer than 5 findings: no status._
+<sub>✅ addressed · 🚫 dismissed · 💤 ignored · 🕸️ outdated, no change found<br>🟢 60%+ addressed · 🟡 40–59% · 🔴 under 40% · ⚪ fewer than 5 findings</sub>
 
-## By reviewer
+### 💤 Files with the most ignored findings
 
-| Reviewer | PRs | Findings | Addressed | Dismissed | Ignored | Not addressed | Outdated | Per PR | First comment |
-|---|---|---|---|---|---|---|---|---|---|
-| Claude | 2 | 3 (2 inline, 1 summary) | 1 (33%) | 1 (33%) | 0 (0%) | 1 (33%) | 0 | 1.5 | 2m |
-| Greptile | 2 | 2 | 0 (0%) | 0 (0%) | 2 (100%) | 0 (0%) | 0 | 1.0 | 10m |
+<sub>Findings nobody replied to, reacted to or changed code for. Line links open the code the reviewer saw; PR links open the comment.</sub>
 
-_**Addressed**: code near the comment changed afterwards, or a reply/👍 confirmed it. **Dismissed**: 👎, a dismissing reply, or resolved with no nearby change. **Ignored**: no response. **Not addressed**: a summary-comment item with no nearby change (summaries have no replies or resolution, so dismissed and ignored look the same). **Outdated**: GitHub marked the thread outdated but no nearby change was found. **Per PR**: findings per PR the reviewer commented on. **First comment**: median time from PR opened to the review being delivered._
+| | File | Ignored | Lines |
+|--:|:--|:--|:--|
+| 1 | [\`api.ts\`](https://github.com/acme/api/blob/HEAD/src/api.ts)<br><sub>src</sub> | **2** <sub>of 2</sub> | [L7](https://github.com/acme/api/blob/c2/src/api.ts#L7) <sub>[#11](https://github.com/acme/api/pull/11#discussion_r1101)</sub> · [L12–15](https://github.com/acme/api/blob/c2/src/api.ts#L12-L15) <sub>[#11](https://github.com/acme/api/pull/11#issuecomment-1150)</sub> |
+| 2 | [\`db.ts\`](https://github.com/acme/api/blob/HEAD/src/db.ts)<br><sub>src</sub> | **1** <sub>of 1</sub> | [L10](https://github.com/acme/api/blob/c1/src/db.ts#L10) <sub>[#10](https://github.com/acme/api/pull/10#discussion_r1005)</sub> |
 
-## By severity
+<details>
+<summary><b>What the reviewers said</b></summary>
 
-| Reviewer | Severity | Findings | Addressed |
-|---|---|---|---|
-| Claude | warning | 1 | 0 (0%) |
+[\`src/api.ts\`](https://github.com/acme/api/blob/HEAD/src/api.ts)
 
-_Severity as labelled by the reviewer itself. A low addressed rate on its highest severity is the number to look at first._
+- [**L7**](https://github.com/acme/api/blob/c2/src/api.ts#L7) · Greptile · [#11](https://github.com/acme/api/pull/11#discussion_r1101)<br>Missing error handling for the fetch call.
+- [**L12–15**](https://github.com/acme/api/blob/c2/src/api.ts#L12-L15) · Claude · Warning · [#11](https://github.com/acme/api/pull/11#issuecomment-1150)<br>Correctness: timeout is never cleared
 
-## Time to merge
+[\`src/db.ts\`](https://github.com/acme/api/blob/HEAD/src/db.ts)
 
-| PRs | Count | Median | p75 |
-|---|---|---|---|
-| With AI findings | 2 | 6.0h | 24.0h |
-| Without AI findings | 1 | 2.0h | 2.0h |
+- [**L10**](https://github.com/acme/api/blob/c1/src/db.ts#L10) · Greptile · [#10](https://github.com/acme/api/pull/10#discussion_r1005)<br>Possible N+1 query.
 
-_Context only: bigger PRs attract more findings and take longer to merge, so this doesn't show cause and effect._
+</details>
 
-## Files where findings get dismissed most
+### By severity
+
+| Reviewer | Severity | Addressed | Findings |
+|:--|:--|:--|--:|
+| Claude | Warning | \`░░░░░░░░░░\` **0%** | 1 |
+
+<sub>Severity as labelled by the reviewer. A low rate on its highest severity is the number to look at first.</sub>
+
+---
+
+<details>
+<summary><b>📊 Full breakdown</b></summary>
+
+| Reviewer | PRs | Inline | Summary | Addressed | Dismissed | Ignored | Not addressed | Outdated | Per PR | First comment |
+|:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| **Claude** | 2 | 2 | 1 | 1 <sub>33%</sub> | 1 <sub>33%</sub> | 0 <sub>0%</sub> | 1 <sub>33%</sub> | 0 | 1.5 | 2m |
+| **Greptile** | 2 | 2 | 0 | 0 <sub>0%</sub> | 0 <sub>0%</sub> | 2 <sub>100%</sub> | 0 <sub>0%</sub> | 0 | 1.0 | 10m |
+
+<sub><b>Per PR</b>: findings per PR the reviewer commented on. <b>First comment</b>: median time from PR opened to the review arriving.</sub>
+
+</details>
+
+<details>
+<summary><b>🚫 Files where findings get dismissed most</b></summary>
 
 Candidates for path exclusions or extra context in your review instructions.
 
-- \`acme/api\` \`src/config.ts\`: 1
+| File | Dismissed |
+|:--|--:|
+| [\`config.ts\`](https://github.com/acme/api/blob/HEAD/src/config.ts)<br><sub>src</sub> | 1 |
+
+</details>
+
+<details>
+<summary><b>⏱️ Time to merge</b></summary>
+
+| PRs | Count | Median | p75 |
+|:--|--:|--:|--:|
+| With AI findings | 2 | 6.0h | 24.0h |
+| Without AI findings | 1 | 2.0h | 2.0h |
+
+<sub>Context only: bigger PRs attract more findings and take longer to merge, so this doesn't show cause and effect.</sub>
+
+</details>
+
+<details>
+<summary><b>ℹ️ How findings are scored</b></summary>
+
+Every comment an AI reviewer leaves on a file and line, and every file-and-line item in its summary comment, is one **finding**. Each finding is checked against the code that changed after it:
+
+- ✅ **Addressed**: code within 3 lines changed afterwards, or a reply such as "fixed" (or a 👍) came with a change to the file.
+- 🚫 **Dismissed**: a 👎, a reply such as "intentional" or "out of scope", or the thread was resolved with no nearby change.
+- 💤 **Ignored**: no reply, reaction, resolution or nearby change. Summary items can't be replied to or resolved, so the full breakdown lists them separately as **not addressed**.
+- 🕸️ **Outdated**: GitHub marked the thread outdated, but no nearby change was found.
+
+These are heuristics: a nearby change isn't proof the comment caused it, and a fix made in a later PR looks ignored. The JSON report records the rule behind every outcome.
+
+</details>
+
+<sub>Generated by mindthebot · read-only: it never comments on, changes or approves a PR</sub>
 "
 `;

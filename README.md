@@ -14,19 +14,20 @@ It's read-only and needs no setup inside the repo.
 
 ## Example
 
-Every report opens with a summary, one line per reviewer:
+Every report opens with headline numbers and one line per reviewer:
 
-| Reviewer | Status | |
-|---|---|---|
-| **Copilot** | 🟢 Mostly acted on | 79% of 152 findings addressed |
-| **Greptile** | 🟢 Mostly acted on | 64% of 173 findings addressed |
-| **CodeRabbit** | 🟡 Partly acted on | 57% of 206 findings addressed |
-| **Claude** | 🟡 Partly acted on | 54% of 112 findings addressed |
+| Reviewer | Addressed | Findings |
+|:--|:--|--:|
+| 🟢 **Copilot**<br><sub>Mostly acted on</sub> | `████████░░` **79%** | 152 |
+| 🟢 **Greptile**<br><sub>Mostly acted on</sub> | `██████░░░░` **64%** | 173 |
+| 🟡 **CodeRabbit**<br><sub>Partly acted on</sub> | `██████░░░░` **57%** | 206 |
+| 🟡 **Claude**<br><sub>Partly acted on</sub> | `█████░░░░░` **54%** | 112 |
 
 🟢 **Mostly acted on**: at least 60% of findings addressed. 🟡 **Partly acted on**: 40–59%. 🔴 **Mostly not acted on**: under 40%. ⚪ With fewer than 5 findings, a reviewer gets no status: the sample is too small to mean much.
 
-These numbers come from eight well-known public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex and claude-code-action): merged PRs from the last 30 days, up to 80 per repo, run on 16 Nov 2026. Below the summary, the full report has:
+These numbers come from eight well-known public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex and claude-code-action): merged PRs from the last 30 days, up to 80 per repo, run on 16 Nov 2026. Below that, the report has:
 
+- **the files with the most ignored findings**, each linked to the exact lines the reviewer commented on and to the comment itself, with a one-line gist of what it said
 - every reviewer's addressed, dismissed and ignored counts, overall and per repo
 - a breakdown by the severity each reviewer gave. On this sample, Greptile's P1s were addressed 73% of the time against 59% for P2s, and CodeRabbit's "major" 60% against 58% for "minor".
 - time to merge for PRs with and without AI findings

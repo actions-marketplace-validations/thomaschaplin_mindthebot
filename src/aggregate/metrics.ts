@@ -43,6 +43,22 @@ export interface SeverityStats {
   addressedRate: number;
 }
 
+export interface IgnoredFile {
+  repo: string;
+  path: string;
+  /** Findings in this file that were ignored or not addressed. */
+  ignored: number;
+  /** All findings in this file, whatever the outcome. */
+  findings: number;
+  /** The ignored findings, newest first, up to MAX_ITEMS_PER_FILE. */
+  items: ClassifiedFinding[];
+}
+
+const MAX_ITEMS_PER_FILE = 5;
+
+/** True when nobody acted on a finding: no change, no reply, no reaction. */
+export const isIgnored = (f: ClassifiedFinding) => f.outcome === "ignored" || f.outcome === "not-addressed";
+
 export interface Ledger {
   generatedAt: string;
   since: string;
@@ -54,6 +70,8 @@ export interface Ledger {
   byRepoAndBot: BotStats[];
   bySeverity: SeverityStats[];
   topDismissedFiles: { repo: string; path: string; dismissed: number }[];
+  /** Files with the most findings nobody acted on (ignored, or a summary item not addressed). */
+  topIgnoredFiles: IgnoredFile[];
   findings: ClassifiedFinding[];
 }
 
@@ -151,6 +169,24 @@ export function buildLedger(
     dismissedByFile.set(key, entry);
   }
 
+  const byFile = new Map<string, IgnoredFile>();
+  for (const f of findings) {
+    if (!f.path) continue;
+    const key = `${f.repo}:${f.path}`;
+    const entry = byFile.get(key) ?? { repo: f.repo, path: f.path, ignored: 0, findings: 0, items: [] };
+    entry.findings += 1;
+    if (isIgnored(f)) {
+      entry.ignored += 1;
+      entry.items.push(f);
+    }
+    byFile.set(key, entry);
+  }
+  const topIgnoredFiles = [...byFile.values()]
+    .filter((f) => f.ignored > 0)
+    .map((f) => ({ ...f, items: [...f.items].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, MAX_ITEMS_PER_FILE) }))
+    .sort((a, b) => b.ignored - a.ignored || b.findings - a.findings || a.path.localeCompare(b.path))
+    .slice(0, 10);
+
   const withAi = prs.filter((pr) => pr.findings.length > 0);
   const withoutAi = prs.filter((pr) => pr.findings.length === 0);
 
@@ -165,6 +201,7 @@ export function buildLedger(
     byRepoAndBot,
     bySeverity,
     topDismissedFiles: [...dismissedByFile.values()].sort((a, b) => b.dismissed - a.dismissed).slice(0, 10),
+    topIgnoredFiles,
     findings,
   };
 }
