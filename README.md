@@ -4,7 +4,7 @@
 
 Teams are adding AI reviewers to every pull request: Claude, Greptile, Copilot, CodeRabbit, Cursor Bugbot, Cubic, Codex. Few teams check whether those comments lead to anything. Without data, people who find a bot noisy can't prove it, people who like it can't prove it catches real issues, and nobody knows whether a prompt or model change made it better or worse.
 
-`mindthebot` reads your merged PRs and scores every issue an AI reviewer raised, whether as an inline comment or as an item in a summary comment, as **addressed**, **dismissed** or **ignored**:
+`mindthebot` reads your merged PRs and scores every issue an AI reviewer raised, whether as an inline comment or as an item in a summary comment, as **addressed**, **dismissed**, **acknowledged** or **ignored**:
 
 ```bash
 npx mindthebot --repo owner/name --since 30d
@@ -28,7 +28,7 @@ Every report opens with headline numbers and one line per reviewer:
 These numbers come from eight well-known public repos (VS Code, supabase, TanStack Query, cline, cal.com, PostHog, openai/codex and claude-code-action): merged PRs from the last 30 days, up to 80 per repo, run on 16 Nov 2026. Below that, the report has:
 
 - **the files with the most ignored findings**, each linked to the exact lines the reviewer commented on and to the comment itself, with a one-line gist of what it said
-- every reviewer's addressed, dismissed and ignored counts, overall and per repo
+- every reviewer's addressed, dismissed, acknowledged and ignored counts, overall and per repo
 - a breakdown by the severity each reviewer gave. On this sample, Greptile's P1s were addressed 73% of the time against 59% for P2s, and CodeRabbit's "major" 60% against 58% for "minor".
 - time to merge for PRs with and without AI findings
 - the files where findings get dismissed most
@@ -41,6 +41,7 @@ For each AI comment, it works out what changed in the code after the comment:
 
 - **Addressed:** code within 3 lines of the comment changed afterwards, or someone replied "fixed" / "good catch" (or gave a 👍) and the file changed.
 - **Dismissed:** a 👎, a reply like "intentional", "out of scope" or "leaving as is", or the thread was resolved with no nearby change.
+- **Acknowledged:** someone replied ("confirmed, leaving this open") or gave a 👍, but no nearby change followed and nobody dismissed it.
 - **Ignored:** no reply, reaction, resolution or nearby change.
 - **Not addressed:** for issues listed in a summary comment, which have no replies or resolution: no nearby change.
 

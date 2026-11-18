@@ -53,6 +53,8 @@ async function main(): Promise<void> {
             findings: s.findings,
             addressedRate: s.addressedRate,
             dismissedRate: s.dismissedRate,
+            acknowledgedRate: s.acknowledgedRate,
+            ignoredRate: s.ignoredRate,
             notAddressedRate: s.notAddressedRate,
           },
         ]),

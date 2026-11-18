@@ -34,9 +34,25 @@ describe("classify", () => {
     expect(result.reason).toMatch(/no diff/);
   });
 
-  it("not addressed: a 'fixed' reply but the file never changed", () => {
+  it("acknowledged, not addressed: a 'fixed' reply but the file never changed", () => {
     const finding = makeFinding({ replies: [reply("fixed")] });
-    expect(outcome(finding, {}, defaultConfig)).toBe("ignored");
+    expect(outcome(finding, {}, defaultConfig)).toBe("acknowledged");
+  });
+
+  it("acknowledged: a reply that confirms but leaves it open", () => {
+    const finding = makeFinding({ replies: [reply("Confirmed. Leaving this open until the author decides.")] });
+    const result = classify(finding, {}, defaultConfig);
+    expect(result.outcome).toBe("acknowledged");
+    expect(result.reason).toMatch(/replied/);
+  });
+
+  it("acknowledged: a 👍 with no change to the file", () => {
+    expect(outcome(makeFinding({ reactions: { up: 1, down: 0 } }), {}, defaultConfig)).toBe("acknowledged");
+  });
+
+  it("acknowledged beats outdated: a reply is a stronger signal", () => {
+    const finding = makeFinding({ isOutdated: true, replies: [reply("Will look at this in a follow-up")] });
+    expect(outcome(finding, {}, defaultConfig)).toBe("acknowledged");
   });
 
   it("dismissed: 👎 reaction", () => {
@@ -63,7 +79,7 @@ describe("classify", () => {
   it("matches phrases as whole words only", () => {
     // "undone" must not match "done".
     const finding = makeFinding({ replies: [reply("this would be undone by the migration")] });
-    expect(outcome(finding, { "src/users.ts": [200] }, defaultConfig)).toBe("ignored");
+    expect(outcome(finding, { "src/users.ts": [200] }, defaultConfig)).toBe("acknowledged");
   });
 
   it("respects a custom proximity", () => {

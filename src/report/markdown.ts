@@ -205,6 +205,7 @@ function reviewersTable(rows: BotStats[]): string {
     const parts = [
       `✅ ${s.addressed}`,
       `🚫 ${s.dismissed}`,
+      ...(s.acknowledged > 0 ? [`💬 ${s.acknowledged}`] : []),
       `💤 ${s.ignored + s.notAddressed}`,
       ...(s.outdated > 0 ? [`🕸️ ${s.outdated}`] : []),
     ];
@@ -216,7 +217,7 @@ function reviewersTable(rows: BotStats[]): string {
 }
 
 const LEGEND =
-  "<sub>✅ addressed · 🚫 dismissed · 💤 ignored · 🕸️ outdated, no change found<br>" +
+  "<sub>✅ addressed · 🚫 dismissed · 💬 acknowledged, not changed · 💤 ignored · 🕸️ outdated, no change found<br>" +
   `🟢 60%+ addressed · 🟡 40–59% · 🔴 under 40% · ⚪ fewer than ${MIN_FINDINGS_FOR_STATUS} findings</sub>`;
 
 /** Line links shown per file in the table; the rest are in "What the reviewers said". */
@@ -298,6 +299,7 @@ function fullTable(rows: BotStats[], withRepo: boolean): string {
       : ([["Findings", (s) => s.findings]] as [string, (s: BotStats) => number][])),
     ["Addressed", (s) => rate(s.addressed, s.addressedRate, s.findings)],
     ["Dismissed", (s) => rate(s.dismissed, s.dismissedRate, s.findings)],
+    ["Acknowledged", (s) => rate(s.acknowledged, s.acknowledgedRate, s.findings)],
     ["Ignored", (s) => rate(s.ignored, s.ignoredRate, s.findings)],
     ...(hasSummary
       ? ([["Not addressed", (s) => rate(s.notAddressed, s.notAddressedRate, s.findings)]] as [string, (s: BotStats) => string][])
@@ -322,6 +324,7 @@ const HOW_IT_WORKS = [
   "",
   '- ✅ **Addressed**: code within 3 lines changed afterwards, or a reply such as "fixed" (or a 👍) came with a change to the file.',
   '- 🚫 **Dismissed**: a 👎, a reply such as "intentional" or "out of scope", or the thread was resolved with no nearby change.',
+  '- 💬 **Acknowledged**: someone replied (for example "confirmed, leaving this open") or gave a 👍, but no nearby change followed and nobody dismissed it.',
   "- 💤 **Ignored**: no reply, reaction, resolution or nearby change. Summary items can't be replied to or resolved, so the full breakdown lists them separately as **not addressed**.",
   "- 🕸️ **Outdated**: GitHub marked the thread outdated, but no nearby change was found.",
   "",

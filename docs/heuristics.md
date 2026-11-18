@@ -43,8 +43,9 @@ The first rule that matches wins.
 | 3 | dismissed | The comment got a 👎. |
 | 4 | dismissed | A person replied with a "dismissed" phrase. |
 | 5 | dismissed | The thread was resolved with no nearby change. |
-| 6 | outdated | GitHub marked the thread outdated, but no nearby change was found. |
-| 7 | ignored | None of the above. |
+| 6 | acknowledged | A person replied or gave a 👍, but none of the rules above matched: no nearby change, no dismissal. For example "Confirmed, leaving this open until the author decides". |
+| 7 | outdated | GitHub marked the thread outdated, but no nearby change was found. |
+| 8 | ignored | None of the above: no reply, reaction, resolution or nearby change. |
 | – | not-addressed | Summary items only: rule 1 didn't match. |
 
 Each classified finding in the JSON output carries a `reason` field saying which rule matched, so you can audit any number.

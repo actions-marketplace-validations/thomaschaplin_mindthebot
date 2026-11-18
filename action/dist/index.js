@@ -50014,6 +50014,7 @@ function botStats(bot, repo, prs, findings) {
   }
   const addressed = count("addressed");
   const dismissed = count("dismissed");
+  const acknowledged = count("acknowledged");
   const ignored = count("ignored");
   const notAddressed = count("not-addressed");
   return {
@@ -50025,11 +50026,13 @@ function botStats(bot, repo, prs, findings) {
     summaryFindings: mine.filter((f) => f.source === "summary").length,
     addressed,
     dismissed,
+    acknowledged,
     ignored,
     outdated: count("outdated"),
     notAddressed,
     addressedRate: ratio(addressed, mine.length),
     dismissedRate: ratio(dismissed, mine.length),
+    acknowledgedRate: ratio(acknowledged, mine.length),
     ignoredRate: ratio(ignored, mine.length),
     notAddressedRate: ratio(notAddressed, mine.length),
     findingsPerPr: ratio(mine.length, prsReviewed),
@@ -50222,6 +50225,7 @@ function reviewersTable(rows) {
     const parts = [
       `\u2705 ${s.addressed}`,
       `\u{1F6AB} ${s.dismissed}`,
+      ...s.acknowledged > 0 ? [`\u{1F4AC} ${s.acknowledged}`] : [],
       `\u{1F4A4} ${s.ignored + s.notAddressed}`,
       ...s.outdated > 0 ? [`\u{1F578}\uFE0F ${s.outdated}`] : []
     ];
@@ -50231,7 +50235,7 @@ function reviewersTable(rows) {
   }
   return lines.join("\n");
 }
-var LEGEND = `<sub>\u2705 addressed \xB7 \u{1F6AB} dismissed \xB7 \u{1F4A4} ignored \xB7 \u{1F578}\uFE0F outdated, no change found<br>\u{1F7E2} 60%+ addressed \xB7 \u{1F7E1} 40\u201359% \xB7 \u{1F534} under 40% \xB7 \u26AA fewer than ${MIN_FINDINGS_FOR_STATUS} findings</sub>`;
+var LEGEND = `<sub>\u2705 addressed \xB7 \u{1F6AB} dismissed \xB7 \u{1F4AC} acknowledged, not changed \xB7 \u{1F4A4} ignored \xB7 \u{1F578}\uFE0F outdated, no change found<br>\u{1F7E2} 60%+ addressed \xB7 \u{1F7E1} 40\u201359% \xB7 \u{1F534} under 40% \xB7 \u26AA fewer than ${MIN_FINDINGS_FOR_STATUS} findings</sub>`;
 var LINES_IN_TABLE = 3;
 function ignoredFilesTable(files, multiRepo) {
   const lines = ["| | File | Ignored | Lines |", "|--:|:--|:--|:--|"];
@@ -50304,6 +50308,7 @@ function fullTable(rows, withRepo) {
     ] : [["Findings", (s) => s.findings]],
     ["Addressed", (s) => rate(s.addressed, s.addressedRate, s.findings)],
     ["Dismissed", (s) => rate(s.dismissed, s.dismissedRate, s.findings)],
+    ["Acknowledged", (s) => rate(s.acknowledged, s.acknowledgedRate, s.findings)],
     ["Ignored", (s) => rate(s.ignored, s.ignoredRate, s.findings)],
     ...hasSummary ? [["Not addressed", (s) => rate(s.notAddressed, s.notAddressedRate, s.findings)]] : [],
     ["Outdated", (s) => s.findings === 0 ? "\u2013" : s.outdated],
@@ -50324,6 +50329,7 @@ var HOW_IT_WORKS = [
   "",
   '- \u2705 **Addressed**: code within 3 lines changed afterwards, or a reply such as "fixed" (or a \u{1F44D}) came with a change to the file.',
   '- \u{1F6AB} **Dismissed**: a \u{1F44E}, a reply such as "intentional" or "out of scope", or the thread was resolved with no nearby change.',
+  '- \u{1F4AC} **Acknowledged**: someone replied (for example "confirmed, leaving this open") or gave a \u{1F44D}, but no nearby change followed and nobody dismissed it.',
   "- \u{1F4A4} **Ignored**: no reply, reaction, resolution or nearby change. Summary items can't be replied to or resolved, so the full breakdown lists them separately as **not addressed**.",
   "- \u{1F578}\uFE0F **Outdated**: GitHub marked the thread outdated, but no nearby change was found.",
   "",
@@ -50494,6 +50500,12 @@ function classify(finding, changes, config2) {
   if (finding.reactions.down > 0) return result("dismissed", "\u{1F44E} reaction");
   if (saidDismissed) return result("dismissed", "reply dismisses the finding");
   if (finding.isResolved) return result("dismissed", "thread resolved with no nearby code change");
+  if (finding.replies.length > 0 || finding.reactions.up > 0) {
+    return result(
+      "acknowledged",
+      finding.replies.length > 0 ? "a person replied, but no nearby change followed" : "\u{1F44D} reaction, but no nearby change followed"
+    );
+  }
   if (finding.isOutdated) return result("outdated", "thread outdated, but no nearby change found");
   return result("ignored", "no reply, reaction, resolution or nearby change");
 }
@@ -50967,6 +50979,8 @@ async function main() {
             findings: s.findings,
             addressedRate: s.addressedRate,
             dismissedRate: s.dismissedRate,
+            acknowledgedRate: s.acknowledgedRate,
+            ignoredRate: s.ignoredRate,
             notAddressedRate: s.notAddressedRate
           }
         ])

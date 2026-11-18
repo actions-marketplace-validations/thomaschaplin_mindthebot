@@ -15,12 +15,15 @@ export interface BotStats {
   summaryFindings: number;
   addressed: number;
   dismissed: number;
+  /** A person replied or reacted, but no change followed and nobody dismissed it. */
+  acknowledged: number;
   ignored: number;
   outdated: number;
   /** Summary items with no nearby change (dismissed and ignored can't be told apart). */
   notAddressed: number;
   addressedRate: number;
   dismissedRate: number;
+  acknowledgedRate: number;
   ignoredRate: number;
   notAddressedRate: number;
   findingsPerPr: number;
@@ -105,6 +108,7 @@ function botStats(
 
   const addressed = count("addressed");
   const dismissed = count("dismissed");
+  const acknowledged = count("acknowledged");
   const ignored = count("ignored");
   const notAddressed = count("not-addressed");
   return {
@@ -116,11 +120,13 @@ function botStats(
     summaryFindings: mine.filter((f) => f.source === "summary").length,
     addressed,
     dismissed,
+    acknowledged,
     ignored,
     outdated: count("outdated"),
     notAddressed,
     addressedRate: ratio(addressed, mine.length),
     dismissedRate: ratio(dismissed, mine.length),
+    acknowledgedRate: ratio(acknowledged, mine.length),
     ignoredRate: ratio(ignored, mine.length),
     notAddressedRate: ratio(notAddressed, mine.length),
     findingsPerPr: ratio(mine.length, prsReviewed),

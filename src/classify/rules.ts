@@ -32,8 +32,10 @@ export function repliesMatch(finding: Finding, phrases: string[]): boolean {
  * 1. addressed: code within `proximity` lines of the comment changed afterwards
  * 2. addressed: a human said "fixed"/"good catch" or gave a 👍, and the file changed afterwards
  * 3. dismissed: a 👎, a dismissal reply, or the thread was resolved with no nearby change
- * 4. outdated:  GitHub marked the thread outdated, but no nearby change was found
- * 5. ignored:   none of the above
+ * 4. acknowledged: a person replied or gave a 👍, but nothing nearby changed and nobody dismissed it
+ *                 (e.g. "Confirmed, leaving this open until the author decides")
+ * 5. outdated:  GitHub marked the thread outdated, but no nearby change was found
+ * 6. ignored:   no reply, reaction, resolution or nearby change
  *
  * Summary items (from a bot's summary comment) have no replies, reactions or
  * resolution, so they are either addressed by rule 1 or "not-addressed".
@@ -93,6 +95,13 @@ export function classify(
   if (finding.reactions.down > 0) return result("dismissed", "👎 reaction");
   if (saidDismissed) return result("dismissed", "reply dismisses the finding");
   if (finding.isResolved) return result("dismissed", "thread resolved with no nearby code change");
+
+  if (finding.replies.length > 0 || finding.reactions.up > 0) {
+    return result(
+      "acknowledged",
+      finding.replies.length > 0 ? "a person replied, but no nearby change followed" : "👍 reaction, but no nearby change followed",
+    );
+  }
 
   if (finding.isOutdated) return result("outdated", "thread outdated, but no nearby change found");
 

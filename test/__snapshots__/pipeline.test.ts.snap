@@ -16,7 +16,7 @@ How often your team acts on what its AI code reviewers say.<br><sub>[acme/api](h
 | ⚪ **Claude**<br><sub>Too few findings</sub> | \`███░░░░░░░\` **33%** | 3 | ✅ 1 · 🚫 1 · 💤 1 |
 | ⚪ **Greptile**<br><sub>Too few findings</sub> | \`░░░░░░░░░░\` **0%** | 2 | ✅ 0 · 🚫 0 · 💤 2 |
 
-<sub>✅ addressed · 🚫 dismissed · 💤 ignored · 🕸️ outdated, no change found<br>🟢 60%+ addressed · 🟡 40–59% · 🔴 under 40% · ⚪ fewer than 5 findings</sub>
+<sub>✅ addressed · 🚫 dismissed · 💬 acknowledged, not changed · 💤 ignored · 🕸️ outdated, no change found<br>🟢 60%+ addressed · 🟡 40–59% · 🔴 under 40% · ⚪ fewer than 5 findings</sub>
 
 ### 💤 Files with the most ignored findings
 
@@ -77,10 +77,10 @@ How often your team acts on what its AI code reviewers say.<br><sub>[acme/api](h
 <details>
 <summary><b>📊 Full breakdown</b></summary>
 
-| Reviewer | PRs | Inline | Summary | Addressed | Dismissed | Ignored | Not addressed | Outdated | Per PR | First comment |
-|:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| **Claude** | 2 | 2 | 1 | 1 <sub>33%</sub> | 1 <sub>33%</sub> | 0 <sub>0%</sub> | 1 <sub>33%</sub> | 0 | 1.5 | 2m |
-| **Greptile** | 2 | 2 | 0 | 0 <sub>0%</sub> | 0 <sub>0%</sub> | 2 <sub>100%</sub> | 0 <sub>0%</sub> | 0 | 1.0 | 10m |
+| Reviewer | PRs | Inline | Summary | Addressed | Dismissed | Acknowledged | Ignored | Not addressed | Outdated | Per PR | First comment |
+|:--|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| **Claude** | 2 | 2 | 1 | 1 <sub>33%</sub> | 1 <sub>33%</sub> | 0 <sub>0%</sub> | 0 <sub>0%</sub> | 1 <sub>33%</sub> | 0 | 1.5 | 2m |
+| **Greptile** | 2 | 2 | 0 | 0 <sub>0%</sub> | 0 <sub>0%</sub> | 0 <sub>0%</sub> | 2 <sub>100%</sub> | 0 <sub>0%</sub> | 0 | 1.0 | 10m |
 
 <sub><b>Per PR</b>: findings per PR the reviewer commented on. <b>First comment</b>: median time from PR opened to the review arriving.</sub>
 
@@ -116,6 +116,7 @@ Every comment an AI reviewer leaves on a file and line, and every file-and-line 
 
 - ✅ **Addressed**: code within 3 lines changed afterwards, or a reply such as "fixed" (or a 👍) came with a change to the file.
 - 🚫 **Dismissed**: a 👎, a reply such as "intentional" or "out of scope", or the thread was resolved with no nearby change.
+- 💬 **Acknowledged**: someone replied (for example "confirmed, leaving this open") or gave a 👍, but no nearby change followed and nobody dismissed it.
 - 💤 **Ignored**: no reply, reaction, resolution or nearby change. Summary items can't be replied to or resolved, so the full breakdown lists them separately as **not addressed**.
 - 🕸️ **Outdated**: GitHub marked the thread outdated, but no nearby change was found.
 

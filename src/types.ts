@@ -75,7 +75,7 @@ export type ChangedLines = Record<string, number[] | null>;
  * "not-addressed" is for summary items: they have no replies, reactions or
  * resolution, so a dismissal can't be told apart from no response.
  */
-export type Outcome = "addressed" | "dismissed" | "ignored" | "outdated" | "not-addressed";
+export type Outcome = "addressed" | "dismissed" | "acknowledged" | "ignored" | "outdated" | "not-addressed";
 
 export interface ClassifiedFinding extends Finding {
   outcome: Outcome;
