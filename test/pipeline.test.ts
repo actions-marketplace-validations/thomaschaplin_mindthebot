@@ -118,7 +118,7 @@ describe("report helpers", async () => {
 
   it("pulls the first readable line out of a review comment", () => {
     expect(snippet('<a href="x"><img alt="P1 Badge" src="y"></a> **Null check missing** in `load`\n\nMore text')).toBe(
-      "Null check missing in `load`",
+      "Null check missing",
     );
     expect(snippet("🟡 (optional) Retry never stops")).toBe("Retry never stops");
     expect(snippet("🟣 pre-existing, not blocking: on hosts with shared runners, state leaks")).toBe("On hosts with shared runners, state leaks");
@@ -128,6 +128,7 @@ describe("report helpers", async () => {
       '<!-- x -->\n\n**<picture><img src="a.svg" alt=""></picture> Minor** · **Functional Correctness** · **Quick win**\n\n**Respect reduced motion.**\n\nBody.';
     expect(snippet(coderabbit)).toBe("Respect reduced motion.");
     expect(snippet("**<sub><sub>![P1 Badge](https://x/p1)</sub></sub>  Document the lifecycle**\n\nBody")).toBe("Document the lifecycle");
+    expect(snippet("**App IDs lack discovery guidance** The new filter needs an owned id.")).toBe("App IDs lack discovery guidance");
     expect(snippet("a".repeat(5) + " " + "word ".repeat(40), 20)).toHaveLength(20);
   });
 

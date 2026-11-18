@@ -50127,7 +50127,7 @@ function escapeInline(text) {
 }
 function snippet(body, max = 110) {
   const lines = body.replace(/<!--[\s\S]*?-->/g, "").replace(/```[\s\S]*?```/g, "").replace(/<details>[\s\S]*?<\/details>/gi, "").replace(/<[^>]+>/g, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").split("\n").map((l) => l.replace(/[ \t]+/g, " ").trim()).filter((l) => /[a-z]{3}/i.test(l));
-  const title = lines.slice(0, 4).map((l) => /^\*\*([^*]+)\*\*$/.exec(l)?.[1]?.trim()).find((t) => t && /[a-z]{3}/i.test(t));
+  const title = lines.slice(0, 4).map((l) => /^\*\*([^*]+)\*\*(?!\s*·)/.exec(l)?.[1]?.trim()).find((t) => t && /[a-z]{3}/i.test(t));
   const line = (title ?? lines[0] ?? "").replace(/^[\s>#*\-+\d.)]+/, "").replace(/^(?:[🔴🟠🟡🟢🟣🔵⚪⚠❗]|\uFE0F|\s)+/u, "").replace(/^\[[A-Z]+\]:?\s*/, "").replace(/\*\*|__/g, "").replace(/^(?:\([^)]{1,25}\)\s*|[a-z][a-z ,()-]{0,30}:\s*)+/, "").trim();
   const tidy = line.charAt(0).toUpperCase() + line.slice(1);
   const short = tidy.length > max ? `${tidy.slice(0, max - 1).trimEnd()}\u2026` : tidy;
