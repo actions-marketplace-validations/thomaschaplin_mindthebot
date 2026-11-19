@@ -1,6 +1,6 @@
 {
   "name": "mindthebot",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Mind the bot: measure whether AI code review comments on GitHub pull requests actually get acted on.",
   "license": "MIT",
   "author": "Thomas Chaplin",
