@@ -4,6 +4,14 @@
   "description": "Mind the bot: measure whether AI code review comments on GitHub pull requests actually get acted on.",
   "license": "MIT",
   "author": "Thomas Chaplin",
+  "homepage": "https://github.com/thomaschaplin/mindthebot#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thomaschaplin/mindthebot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/thomaschaplin/mindthebot/issues"
+  },
   "type": "module",
   "bin": {
     "mindthebot": "dist/cli.js"
@@ -20,7 +28,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check-dist": "npm run build && git diff --exit-code -- action/dist"
+    "check-dist": "npm run build && git diff --exit-code -- action/dist",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "keywords": [
     "github",
@@ -44,5 +53,8 @@
     "tsup": "^9.0.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
